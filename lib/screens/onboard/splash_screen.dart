@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'onboarding_screen.dart';
+import 'package:fit_talk/screens/onboard/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';

@@ -1,5 +1,5 @@
-import 'provider/profile_provider.dart';
-import 'services/profile_service.dart';
+import 'package:fit_talk/screens/account/provider/profile_provider.dart';
+import 'package:fit_talk/screens/account/services/profile_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

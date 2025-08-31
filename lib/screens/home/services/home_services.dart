@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:dartz/dartz.dart';
-import '../../../global/api_config.dart';
 import 'package:flutter/foundation.dart';
 
 enum ProfessionalType { trainer, dermatologist, dietician }
@@ -114,7 +113,7 @@ class Professional {
 
 // Service class
 class HomeServices {
-  static final String _baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
+  static const String _baseUrl = 'https://fitness-backend-eight.vercel.app';
   static const String _verifiedProfessionalsEndpoint =
       '/api/user/verified-trainers';
 

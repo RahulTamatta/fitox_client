@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import '../../../global/api_config.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart'; // For debugPrint
 
@@ -40,8 +39,12 @@ class BlogResponse {
 }
 
 class CommunityService {
-  static final String _base = '${ApiConfig.baseUrl}/blog';
-  static final FlutterSecureStorage _storage = FlutterSecureStorage();
+  static const String _baseUrlLocal = 'http://localhost:5000/api/blog';
+  static const String _baseUrlRemote =
+      'https://fitness-backend-eight.vercel.app/api/blog';
+  static const String _baseUrlGetBlogs =
+      'https://fitness-backend-node.onrender.com/api/blog';
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final http.Client _client = http.Client();
 
   // Helper to get auth token
@@ -92,7 +95,7 @@ class CommunityService {
       }
       print("::: Res");
       final response = await _client.post(
-        Uri.parse('$_base/create'),
+        Uri.parse('$_baseUrlRemote/create'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -144,7 +147,7 @@ class CommunityService {
   Future<BlogResponse> getBlogs({String? category, int page = 1}) async {
     try {
       final token = await _getToken();
-      final uri = Uri.parse(_base).replace(
+      final uri = Uri.parse(_baseUrlGetBlogs).replace(
         queryParameters: {
           if (category != null && category != 'All') 'category': category,
           'page': page.toString(),
@@ -202,7 +205,7 @@ class CommunityService {
     try {
       final token = await _getToken();
       final response = await _client.get(
-        Uri.parse('$_base/$blogId'),
+        Uri.parse('$_baseUrlRemote/$blogId'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -267,7 +270,7 @@ class CommunityService {
 
       final url = isLiked ? 'unlike' : 'like';
       final response = await _client.put(
-        Uri.parse('$_base/$url/$blogId'),
+        Uri.parse('$_baseUrlRemote/$url/$blogId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -330,7 +333,7 @@ class CommunityService {
       }
 
       final response = await _client.post(
-        Uri.parse('$_base/comment/$blogId'),
+        Uri.parse('$_baseUrlRemote/comment/$blogId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

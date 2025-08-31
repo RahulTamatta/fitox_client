@@ -1,5 +1,5 @@
-import 'trainer_chatlist_screen.dart';
-import 'trainer_profile_screen.dart';
+import 'package:fit_talk/screens/trainer/trainer_chatlist_screen.dart';
+import 'package:fit_talk/screens/trainer/trainer_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../../global/api_config.dart';
 
 class ChatService {
-  static final String _baseUrl = '${ApiConfig.baseUrl}/chat';
+  static const String _baseUrl =
+      'https://fitness-backend-eight.vercel.app/api/chat';
   final http.Client _client;
 
   ChatService({http.Client? client}) : _client = client ?? http.Client();

@@ -6,7 +6,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:mime/mime.dart';
-import '../../../global/api_config.dart';
 
 class AuthResponse {
   final bool success;
@@ -115,7 +114,7 @@ class User {
 }
 
 class AuthService {
-  static final String _baseUrl = ApiConfig.baseUrl;
+  static const String _baseUrl = 'https://fitness-backend-eight.vercel.app/api';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final http.Client _client = http.Client();
 

@@ -1,6 +1,6 @@
-import 'services/auth_service.dart';
-import 'signup_screen.dart';
-import '../navigator/bottom_navigator_screen.dart';
+import 'package:fit_talk/screens/auth/services/auth_service.dart';
+import 'package:fit_talk/screens/auth/signup_screen.dart';
+import 'package:fit_talk/screens/navigator/bottom_navigator_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
