@@ -113,8 +113,8 @@ class Professional {
 
 // Service class
 class HomeServices {
-  //https://fitness-backend-eight.vercel.app
-  static const String _baseUrl = 'http://10.0.2.2:5001';
+  //https://fitox-server.onrender.com
+  static const String _baseUrl = 'https://fitox-server.onrender.com';
   static const String _verifiedProfessionalsEndpoint =
       '/api/user/verified-trainers';
 

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SubscriptionService {
-  static const String _baseUrl = 'http://10.0.2.2:5001/api/agora';
+  static const String _baseUrl = 'https://fitox-server.onrender.com/api/agora';
   static Map<String, dynamic>? _cachedStatus;
   static DateTime? _lastCacheTime;
   static const Duration _cacheValidDuration = Duration(minutes: 5);
@@ -11,8 +11,8 @@ class SubscriptionService {
   static Future<bool> isActive(String userId) async {
     try {
       // Check cache first
-      if (_cachedStatus != null && 
-          _lastCacheTime != null && 
+      if (_cachedStatus != null &&
+          _lastCacheTime != null &&
           DateTime.now().difference(_lastCacheTime!) < _cacheValidDuration) {
         return _cachedStatus!['active'] ?? false;
       }
@@ -40,8 +40,8 @@ class SubscriptionService {
   static Future<Map<String, dynamic>?> getStatus(String userId) async {
     try {
       // Check cache first
-      if (_cachedStatus != null && 
-          _lastCacheTime != null && 
+      if (_cachedStatus != null &&
+          _lastCacheTime != null &&
           DateTime.now().difference(_lastCacheTime!) < _cacheValidDuration) {
         return _cachedStatus;
       }
@@ -71,10 +71,7 @@ class SubscriptionService {
       final response = await http.post(
         Uri.parse('$_baseUrl/subscription/validate'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'userId': userId,
-          'action': action,
-        }),
+        body: jsonEncode({'userId': userId, 'action': action}),
       );
 
       if (response.statusCode == 200) {

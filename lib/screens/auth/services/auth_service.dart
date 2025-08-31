@@ -115,7 +115,7 @@ class User {
 }
 
 class AuthService {
-  static const String _baseUrl = 'http://10.0.2.2:5001/api';
+  static const String _baseUrl = 'https://fitox-server.onrender.com/api';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final http.Client _client = http.Client();
 

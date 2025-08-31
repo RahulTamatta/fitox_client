@@ -7,7 +7,7 @@ import '../models/user_info.dart';
 class UserService {
   static String get baseUrl =>
       Platform.isAndroid
-          ? 'http://10.0.2.2:5001/api'
+          ? 'https://fitox-server.onrender.com/api'
           : 'http://localhost:5001/api';
 
   static Future<UserInfo?> getUserInfo(String userId) async {

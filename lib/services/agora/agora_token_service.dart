@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AgoraTokenService {
-  static const String _baseUrl = 'http://10.0.2.2:5001/api/agora';
-  
+  static const String _baseUrl = 'https://fitox-server.onrender.com/api/agora';
+
   static Future<Map<String, dynamic>?> getRtcToken({
     required String channelName,
     required int uid,
@@ -42,10 +42,7 @@ class AgoraTokenService {
       final response = await http.post(
         Uri.parse('$_baseUrl/rtmToken'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'uid': uid,
-          'ttlSeconds': ttlSeconds,
-        }),
+        body: jsonEncode({'uid': uid, 'ttlSeconds': ttlSeconds}),
       );
 
       if (response.statusCode == 200) {
@@ -89,10 +86,7 @@ class AgoraTokenService {
       final response = await http.post(
         Uri.parse('$_baseUrl/subscription/validate'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'userId': userId,
-          'action': action,
-        }),
+        body: jsonEncode({'userId': userId, 'action': action}),
       );
 
       if (response.statusCode == 200) {

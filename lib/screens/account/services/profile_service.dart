@@ -25,7 +25,7 @@ class ApiResponse<T> {
 }
 
 class ProfileService {
-  static const String _baseUrl = 'http://10.0.2.2:5001/api';
+  static const String _baseUrl = 'https://fitox-server.onrender.com/api';
   static const Duration _timeoutDuration = Duration(seconds: 30);
   static const int _maxRetries = 2;
 
