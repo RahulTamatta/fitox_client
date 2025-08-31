@@ -25,9 +25,16 @@ class _AccountScreenState extends State<AccountScreen> {
     // Fetch profile data when the screen loads using userId from SharedPreferences
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final prefs = await SharedPreferences.getInstance();
-      final userId =
-          prefs.getString('user_id') ??
-          '6818873648f2288bd818501f'; // Fallback userId
+      final userId = prefs.getString('userId');
+      if (userId == null || userId.isEmpty) {
+        // If no userId is present, force user to login
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+        return;
+      }
       Provider.of<ProfileProvider>(
         context,
         listen: false,
@@ -60,9 +67,24 @@ class _AccountScreenState extends State<AccountScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       final prefs = await SharedPreferences.getInstance();
-                      final userId =
-                          prefs.getString('user_id') ??
-                          '6818873648f2288bd818501f';
+                      final userId = prefs.getString('userId');
+                      if (userId == null || userId.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Session expired. Please log in again.',
+                            ),
+                          ),
+                        );
+                        if (!mounted) return;
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                        );
+                        return;
+                      }
                       Provider.of<ProfileProvider>(
                         context,
                         listen: false,
@@ -263,8 +285,13 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _buildTrainerInfo(Map<String, dynamic> profile) {
     final experience = profile['experience'] ?? 0;
     final currentOccupation = profile['currentOccupation'] ?? 'N/A';
+
+    // Handle both String and List cases for availableTimings
     final availableTimings =
-        (profile['availableTimings'] as List<dynamic>?)?.join(', ') ?? 'N/A';
+        profile['availableTimings'] is String
+            ? profile['availableTimings']
+            : (profile['availableTimings'] as List<dynamic>?)?.join(', ') ??
+                'N/A';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,7 +524,17 @@ class _AccountScreenState extends State<AccountScreen> {
       {
         "icon": Symbols.logout_rounded,
         "title": "Log Out",
-        "action": () => _showLogoutDialog(context),
+        "action": () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('token');
+          await prefs.remove('userId');
+          Provider.of<ProfileProvider>(context, listen: false).reset();
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            (route) => false,
+          );
+        },
       },
     ];
 
@@ -626,8 +663,8 @@ class _AccountScreenState extends State<AccountScreen> {
               TextButton(
                 onPressed: () async {
                   final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('auth_token');
-                  await prefs.remove('user_id');
+                  await prefs.remove('token');
+                  await prefs.remove('userId');
                   Provider.of<ProfileProvider>(context, listen: false).reset();
                   Navigator.pushAndRemoveUntil(
                     context,

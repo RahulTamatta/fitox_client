@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'package:flutter/foundation.dart'; // For debugPrint
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 class BlogResponse {
   final bool success;
@@ -40,8 +43,7 @@ class BlogResponse {
 
 class CommunityService {
   static const String _baseUrlLocal = 'http://localhost:5000/api/blog';
-  static const String _baseUrlRemote =
-      'https://fitness-backend-eight.vercel.app/api/blog';
+  static const String _baseUrlRemote = 'http://10.0.2.2:5001/api/blog';
   static const String _baseUrlGetBlogs =
       'https://fitness-backend-node.onrender.com/api/blog';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
@@ -69,39 +71,54 @@ class CommunityService {
         );
       }
 
-      // Prepare the JSON body
-      final body = {
-        'title': title,
-        'content': content,
-        'userId': userId,
-        'role': role,
-      };
+      if (kDebugMode) {
+        debugPrint('Creating blog with userId: $userId, role: $role');
+        debugPrint('Blog title: $title');
+        debugPrint('Blog content length: ${content.length}');
+      }
 
-      // Add base64-encoded image if available
+      // Use multipart request for file upload
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_baseUrlRemote/create'),
+      );
+
+      // Add headers
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add form fields
+      request.fields['title'] = title;
+      request.fields['content'] = content;
+      request.fields['userId'] = userId;
+      request.fields['role'] = role;
+
+      // Add image file if available
       if (image != null) {
         try {
-          final imageBytes = await image.readAsBytes();
-          final base64Image = base64Encode(imageBytes);
-          body['image'] = 'data:image/jpeg;base64,$base64Image';
+          final mimeType = lookupMimeType(image.path) ?? 'image/jpeg';
+          final multipartFile = await http.MultipartFile.fromPath(
+            'image',
+            image.path,
+            contentType: MediaType.parse(mimeType),
+          );
+          request.files.add(multipartFile);
+          
+          if (kDebugMode) {
+            debugPrint('Adding image file: ${image.path}, mimeType: $mimeType');
+          }
         } catch (e) {
           if (kDebugMode) {
-            debugPrint('Image encoding error: $e');
+            debugPrint('Image file error: $e');
           }
           return BlogResponse(
             success: false,
-            message: 'Failed to encode image: $e',
+            message: 'Failed to process image file: $e',
           );
         }
       }
-      print("::: Res");
-      final response = await _client.post(
-        Uri.parse('$_baseUrlRemote/create'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (kDebugMode) {
         // debugPrint('Create Blog Response status: ${response.statusCode}');
@@ -126,7 +143,10 @@ class CommunityService {
       }
 
       try {
-        print("::: Yes");
+        if (kDebugMode) {
+          debugPrint('Blog creation successful - Status: ${response.statusCode}');
+          debugPrint('Response body: ${response.body}');
+        }
         final json = jsonDecode(response.body);
         return BlogResponse.fromJson(json);
       } catch (e) {
@@ -137,7 +157,7 @@ class CommunityService {
       }
     } catch (e) {
       if (kDebugMode) {
-        //    debugPrint('Create Blog error: $e');
+        debugPrint('Create Blog error: $e');
       }
       return BlogResponse(success: false, message: 'Network error: $e');
     }

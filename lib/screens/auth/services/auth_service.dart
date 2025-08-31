@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 
 class AuthResponse {
@@ -114,7 +115,7 @@ class User {
 }
 
 class AuthService {
-  static const String _baseUrl = 'https://fitness-backend-eight.vercel.app/api';
+  static const String _baseUrl = 'http://10.0.2.2:5001/api';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final http.Client _client = http.Client();
 

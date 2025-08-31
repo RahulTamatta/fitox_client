@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
 
 // Enum to represent API response states
 enum ResponseState { initial, loading, success, error }
@@ -24,7 +25,7 @@ class ApiResponse<T> {
 }
 
 class ProfileService {
-  static const String _baseUrl = 'https://fitness-backend-eight.vercel.app/api';
+  static const String _baseUrl = 'http://10.0.2.2:5001/api';
   static const Duration _timeoutDuration = Duration(seconds: 30);
   static const int _maxRetries = 2;
 

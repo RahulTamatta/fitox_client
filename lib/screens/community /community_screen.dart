@@ -8,6 +8,8 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../themes/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:provider/provider.dart';
 
@@ -61,11 +63,7 @@ class _CommunityScreenState extends State<CommunityScreen>
     _animationController.forward();
 
     _fetchBlogs();
-    // _loadUserData();
-    setState(() {
-      _userId = '123456';
-      _role = 'user';
-    });
+    _loadUserData();
 
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
@@ -76,14 +74,41 @@ class _CommunityScreenState extends State<CommunityScreen>
     });
   }
 
-  // Future<void> _loadUserData() async {
-  //   final authService = Provider.of<AuthService>(context, listen: false);
-  //   final user = await authService.getCurrentUser();
-  //   setState(() {
-  //     _userId = user?.id;
-  //     _role = user?.role ?? 'user';
-  //   });
-  // }
+  Future<void> _loadUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userId');
+      final userRole = prefs.getString('userRole');
+      
+      if (kDebugMode) {
+        debugPrint('Loading user data - userId: $userId, role: $userRole');
+      }
+      
+      if (userId != null && userId.isNotEmpty) {
+        setState(() {
+          _userId = userId;
+          _role = userRole ?? 'user';
+        });
+      } else {
+        if (kDebugMode) {
+          debugPrint('No userId found in SharedPreferences');
+        }
+        // Handle case where user is not logged in
+        setState(() {
+          _userId = null;
+          _role = 'user';
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error loading user data: $e');
+      }
+      setState(() {
+        _userId = null;
+        _role = 'user';
+      });
+    }
+  }
 
   Future<void> _fetchBlogs({bool isRefresh = false}) async {
     if (isRefresh) {
