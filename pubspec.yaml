@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
   provider: ^6.1.5
+  flutter_bloc: ^8.1.5
+  equatable: ^2.0.5
   shimmer: ^3.0.0
   flutter_screenutil: ^5.9.3
   lottie: ^3.3.1
@@ -53,12 +55,17 @@ dependencies:
   flutter_image_compress: ^2.4.0
   shared_preferences: ^2.5.3
   agora_rtc_engine: ^6.5.2
+  agora_rtm: ^2.2.2
   uuid: ^4.5.1
   flutter_spinkit: ^5.2.1
   dartz: ^0.10.1
   share_plus: ^11.0.0
   http_parser: ^4.1.2
   mime: ^2.0.0
+  connectivity_plus: ^4.0.2
+  cloud_firestore: ^4.13.6
+  firebase_core: ^2.24.2
+  socket_io_client: ^3.1.2
 
 dev_dependencies:
   flutter_test:

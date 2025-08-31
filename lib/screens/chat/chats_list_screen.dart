@@ -1,4 +1,4 @@
-import 'package:fit_talk/screens/chat/services/chat_provider.dart';
+import '../../providers/chat_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -57,9 +57,9 @@ class _ChatListScreenState extends State<ChatListScreen>
 
       if (_userId != null && _userId!.isNotEmpty) {
         final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-        await chatProvider.fetchUserChats(userId: _userId!);
+        await chatProvider.loadUserChats(_userId!);
         if (kDebugMode) {
-          debugPrint('User Chats Response: ${chatProvider.userChats}');
+          debugPrint('User Chats loaded');
         }
       } else {
         debugPrint('Error: userId not found in SharedPreferences');
@@ -155,19 +155,25 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   Widget _buildChatList(ChatProvider chatProvider) {
-    final chats =
-        chatProvider.userChats.map((chat) {
-          return {
-            'name': chat['trainerName'] ?? 'Trainer ${chat['trainerId']}',
-            'lastMessage': chat['lastMessage'] ?? 'No messages yet',
-            'time': _formatTimestamp(chat['timestamp']),
-            'unreadCount': chat['unreadCount'] ?? 0,
-            'avatarIcon': Icons.fitness_center_rounded,
-            'isOnline': chat['isOnline'] ?? false,
-            'isTrainer': true,
-            'chatId': chat['_id'],
-          };
-        }).toList();
+    if (kDebugMode) {
+      debugPrint('📋 [ChatListScreen] Building chat list with ${chatProvider.chatSummaries.length} summaries');
+      debugPrint('📋 [ChatListScreen] Chat summaries: ${chatProvider.chatSummaries}');
+    }
+    
+    final chats = chatProvider.chatSummaries.map((summary) {
+      return {
+        'name': summary['otherUserName'] ?? 'Unknown User',
+        'lastMessage': summary['lastMessage'] ?? 'No messages yet',
+        'time': _formatTimestamp(summary['lastMessageTime']),
+        'unreadCount': summary['unreadCount'] ?? 0,
+        'avatarIcon': Icons.fitness_center_rounded,
+        'isOnline': false,
+        'isTrainer': true,
+        'chatId': summary['chatId'],
+        'otherUserId': summary['otherUserId'],
+        'otherUserImage': summary['otherUserImage'],
+      };
+    }).toList();
 
     return SlideTransition(
       position: _slideAnimation,
@@ -197,6 +203,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                     isOnline: chat['isOnline'],
                     isTrainer: chat['isTrainer'],
                     chatId: chat['chatId'],
+                    chat: chat,
                   );
                 },
               ),
@@ -212,6 +219,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     required bool isOnline,
     required bool isTrainer,
     required String chatId,
+    required Map<String, dynamic> chat,
   }) {
     return InkWell(
       onTap: () {
@@ -221,7 +229,9 @@ class _ChatListScreenState extends State<ChatListScreen>
             pageBuilder:
                 (context, animation, secondaryAnimation) => ChatScreen(
                   chatId: chatId,
-                  userId: _userId ?? '', // Pass userId to ChatScreen
+                  userId: chat['otherUserId'] ?? '',
+                  userName: chat['name'],
+                  userImage: chat['otherUserImage'],
                 ),
             transitionsBuilder: (
               context,
@@ -252,24 +262,23 @@ class _ChatListScreenState extends State<ChatListScreen>
           children: [
             Stack(
               children: [
-                Container(
-                  width: 56.w,
-                  height: 56.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color:
-                        isTrainer
-                            ? AppTheme.primaryColor.withOpacity(0.1)
-                            : Colors.grey.shade100,
-                  ),
-                  child: Icon(
-                    avatarIcon,
-                    size: 28.sp,
-                    color:
-                        isTrainer
-                            ? AppTheme.primaryColor
-                            : Colors.grey.shade700,
-                  ),
+                CircleAvatar(
+                  radius: 28.w,
+                  backgroundImage: chat['otherUserImage'] != null && chat['otherUserImage'].isNotEmpty
+                      ? NetworkImage(chat['otherUserImage'])
+                      : null,
+                  backgroundColor: isTrainer
+                      ? AppTheme.primaryColor.withOpacity(0.1)
+                      : Colors.grey.shade100,
+                  child: chat['otherUserImage'] == null || chat['otherUserImage'].isEmpty
+                      ? Icon(
+                          avatarIcon,
+                          size: 28.sp,
+                          color: isTrainer
+                              ? AppTheme.primaryColor
+                              : Colors.grey.shade700,
+                        )
+                      : null,
                 ),
                 if (isOnline)
                   Positioned(
@@ -360,14 +369,15 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
-  String _formatTimestamp(String? timestamp) {
+  String _formatTimestamp(DateTime? timestamp) {
     if (timestamp == null) return 'Unknown';
-    final date = DateTime.parse(timestamp);
     final now = DateTime.now();
-    final difference = now.difference(date);
+    final difference = now.difference(timestamp);
 
     if (difference.inDays == 0) {
-      return '${date.hour}:${date.minute.toString().padLeft(2, '0')} ${date.hour >= 12 ? 'PM' : 'AM'}';
+      final hour = timestamp.hour > 12 ? timestamp.hour - 12 : timestamp.hour;
+      final displayHour = hour == 0 ? 12 : hour;
+      return '$displayHour:${timestamp.minute.toString().padLeft(2, '0')} ${timestamp.hour >= 12 ? 'PM' : 'AM'}';
     } else if (difference.inDays == 1) {
       return 'Yesterday';
     } else if (difference.inDays < 7) {
@@ -379,7 +389,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         'Friday',
         'Saturday',
         'Sunday',
-      ][date.weekday - 1];
+      ][timestamp.weekday - 1];
     } else {
       return 'Last week';
     }

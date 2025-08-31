@@ -7,8 +7,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../themes/app_theme.dart';
 import '../../video services/video_call_screen.dart';
+import '../chat/chat_screen.dart';
+import '../../providers/chat_provider.dart';
+// import '../../providers/subscription_provider.dart'; // Commented out for testing
 
 class TrainerDetailsScreen extends StatefulWidget {
   final Professional trainer;
@@ -22,30 +27,138 @@ class TrainerDetailsScreen extends StatefulWidget {
 class _TrainerDetailsScreenState extends State<TrainerDetailsScreen> {
   final TextEditingController _messageController = TextEditingController();
   bool _isSendingMessage = false;
+  String? _currentUserId;
 
-  // Mock function to send a message (replace with actual backend call)
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUserId();
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _currentUserId = prefs.getString('userId');
+    });
+  }
+
   Future<void> _sendMessage(String message) async {
+    print('=== MESSAGE SEND START ===');
+    print('🎯 [TrainerDetailsScreen] Send button pressed with message: "$message"');
+    print('=== CURRENT STATE ===');
+    print('Current User ID: $_currentUserId');
+    print('Trainer ID: ${widget.trainer.id}');
+    print('Is Sending: $_isSendingMessage');
+    
+    if (_currentUserId == null) {
+      print('❌ [TrainerDetailsScreen] No current user ID found');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to send messages')),
+      );
+      return;
+    }
+
+    print('👤 [TrainerDetailsScreen] Current user ID: $_currentUserId, Trainer ID: ${widget.trainer.id}');
+
+    // Check subscription status first - COMMENTED OUT FOR TESTING
+    // print('🔍 [TrainerDetailsScreen] Checking subscription status...');
+    // final subscriptionProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+    // final canSendMessage = await subscriptionProvider.validateAction(_currentUserId!, 'send_message');
+    
+    // if (!canSendMessage) {
+    //   print('⛔ [TrainerDetailsScreen] Subscription validation failed');
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text('You need an active subscription to send messages to ${widget.trainer.name}'),
+    //       action: SnackBarAction(
+    //         label: 'Subscribe',
+    //         onPressed: () {
+    //           // TODO: Navigate to subscription screen
+    //           ScaffoldMessenger.of(context).showSnackBar(
+    //             const SnackBar(content: Text('Subscription feature coming soon')),
+    //           );
+    //         },
+    //       ),
+    //     ),
+    //   );
+    //   return;
+    // }
+
+    print('✅ [TrainerDetailsScreen] Skipping subscription validation for testing, proceeding with message send');
+
     setState(() {
       _isSendingMessage = true;
     });
+
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      
+      print('🔄 [TrainerDetailsScreen] Initializing chat with trainer...');
+      // Initialize chat with the trainer first
+      await chatProvider.initializeChat(_currentUserId!, widget.trainer.id);
+      print('✅ [TrainerDetailsScreen] Chat initialized successfully');
+      
+      print('📤 [TrainerDetailsScreen] Sending message via ChatProvider...');
+      // Send the message using ChatProvider
+      await chatProvider.sendMessage(message);
+      print('✅ [TrainerDetailsScreen] Message sent via ChatProvider');
+      
+      // Update chat summary with trainer info
+      final chatId = 'chat_${_currentUserId}_${widget.trainer.id}';
+      print('📋 [TrainerDetailsScreen] Updating chat summary for chatId: $chatId');
+      chatProvider.updateChatSummary(
+        chatId,
+        message,
+        DateTime.now(),
+        widget.trainer.id,
+        widget.trainer.name,
+        widget.trainer.profileImage.isNotEmpty ? widget.trainer.profileImage : null,
+      );
+      print('✅ [TrainerDetailsScreen] Chat summary updated');
+      
+      // Clear the message input
+      _messageController.clear();
+      print('🧹 [TrainerDetailsScreen] Message input cleared');
+      
+      // Navigate to chat screen after successful message send
+      print('🧭 [TrainerDetailsScreen] Navigating to chat screen...');
+      _navigateToChat();
+      print('✅ [TrainerDetailsScreen] Navigation completed');
+      
+    } catch (e) {
+      print('💥 [TrainerDetailsScreen] Error in _sendMessage: $e');
       if (kDebugMode) {
-        print('Message sent to ${widget.trainer.name}: $message');
+        print('🔍 [TrainerDetailsScreen] Stack trace: ${StackTrace.current}');
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Message sent to ${widget.trainer.name}')),
+        SnackBar(content: Text('Failed to send message: $e')),
       );
-      _messageController.clear();
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
     } finally {
       setState(() {
         _isSendingMessage = false;
       });
+      print('🏁 [TrainerDetailsScreen] Message send process completed');
     }
+  }
+
+  void _navigateToChat() {
+    if (_currentUserId == null) return;
+    
+    final chatId = 'chat_${_currentUserId}_${widget.trainer.id}';
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          chatId: chatId,
+          userId: widget.trainer.id,
+          userName: widget.trainer.name,
+          userImage: widget.trainer.profileImage.isNotEmpty 
+              ? widget.trainer.profileImage 
+              : null,
+        ),
+      ),
+    );
   }
 
   // Mock function for audio call (replace with actual call service integration)
@@ -418,10 +531,19 @@ class _TrainerDetailsScreenState extends State<TrainerDetailsScreen> {
                   color: AppTheme.primaryColor,
                   size: 20.sp,
                 ),
-                onPressed:
-                    _isSendingMessage || _messageController.text.trim().isEmpty
-                        ? null
-                        : () => _sendMessage(_messageController.text.trim()),
+                onPressed: () {
+                  print('🔥 [UI] Send button pressed!');
+                  print('🔥 [UI] Message text: "${_messageController.text.trim()}"');
+                  print('🔥 [UI] Is sending: $_isSendingMessage');
+                  
+                  if (_isSendingMessage || _messageController.text.trim().isEmpty) {
+                    print('🔥 [UI] Send blocked - isSending: $_isSendingMessage, isEmpty: ${_messageController.text.trim().isEmpty}');
+                    return;
+                  }
+                  
+                  print('🔥 [UI] Calling _sendMessage...');
+                  _sendMessage(_messageController.text.trim());
+                },
               ),
             ),
             maxLines: 3,

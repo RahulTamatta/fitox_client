@@ -4,14 +4,29 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../themes/app_theme.dart';
-import '../auth/login_screen.dart'; // Adjust import based on your project
+import '../../providers/call_provider.dart';
+import '../../providers/subscription_provider.dart';
+import '../auth/login_screen.dart';
+import '../call/call_screen.dart';
+import '../chat/chat_screen.dart';
 
-class TrainerProfileScreen extends StatelessWidget {
-  TrainerProfileScreen({super.key});
+class TrainerProfileScreen extends StatefulWidget {
+  final String? trainerId; // Pass actual trainer ID
+  
+  const TrainerProfileScreen({super.key, this.trainerId});
 
-  // Mock profile data
+  @override
+  State<TrainerProfileScreen> createState() => _TrainerProfileScreenState();
+}
+
+class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
+  // Mock profile data - in real app, fetch from backend using widget.trainerId
   final Map<String, dynamic> profile = {
+    'id': '507f1f77bcf86cd799439011', // MongoDB ObjectId format
+    'uId': 123456, // Numeric uId from backend
     'name': 'Alex Trainer',
     'profileImage':
         'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
@@ -272,10 +287,33 @@ class TrainerProfileScreen extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Column(
         children: [
+          // Call buttons row
+          Row(
+            children: [
+              Expanded(
+                child: _buildCallButton(
+                  context: context,
+                  icon: Symbols.call,
+                  label: "Audio Call",
+                  onTap: () => _initiateCall(context, CallType.audio),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: _buildCallButton(
+                  context: context,
+                  icon: Symbols.videocam,
+                  label: "Video Call",
+                  onTap: () => _initiateCall(context, CallType.video),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          
+          // Message button
           InkWell(
-            onTap: () {
-              // Placeholder for edit profile
-            },
+            onTap: () => _openChat(context),
             borderRadius: BorderRadius.circular(16.r),
             child: Container(
               padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
@@ -300,10 +338,10 @@ class TrainerProfileScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Symbols.edit_rounded, size: 22.sp, color: Colors.white),
+                  Icon(Symbols.chat, size: 22.sp, color: Colors.white),
                   SizedBox(width: 8.w),
                   Text(
-                    "Edit Profile",
+                    "Message",
                     style: GoogleFonts.poppins(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -315,6 +353,46 @@ class TrainerProfileScreen extends StatelessWidget {
             ),
           ),
           SizedBox(height: 12.h),
+          
+          // Edit Profile button
+          InkWell(
+            onTap: () {
+              // Placeholder for edit profile
+            },
+            borderRadius: BorderRadius.circular(16.r),
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Symbols.edit_rounded, size: 22.sp, color: AppTheme.primaryColor),
+                  SizedBox(width: 8.w),
+                  Text(
+                    "Edit Profile",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          
+          // Logout button
           InkWell(
             onTap: () {
               _showLogoutDialog(context);
@@ -351,6 +429,179 @@ class TrainerProfileScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCallButton({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16.r),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.primaryColor,
+              AppTheme.primaryColor.withOpacity(0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 24.sp, color: Colors.white),
+            SizedBox(height: 4.h),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _initiateCall(BuildContext context, CallType callType) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('userId');
+      
+      if (currentUserId == null) {
+        _showErrorSnackBar(context, 'Please log in to make calls');
+        return;
+      }
+
+      // Check subscription
+      final subscriptionProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+      await subscriptionProvider.checkSubscription(currentUserId);
+      
+      if (!subscriptionProvider.isActive) {
+        _showSubscriptionDialog(context);
+        return;
+      }
+
+      // Navigate to call screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CallScreen(
+            calleeId: profile['id'], // Use actual trainer ID
+            calleeName: profile['name'],
+            callType: callType,
+            calleeImage: profile['profileImage'],
+          ),
+        ),
+      );
+    } catch (e) {
+      _showErrorSnackBar(context, 'Failed to initiate call: $e');
+    }
+  }
+
+  Future<void> _openChat(BuildContext context) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('userId');
+      
+      if (currentUserId == null) {
+        _showErrorSnackBar(context, 'Please log in to chat');
+        return;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            chatId: 'chat_${currentUserId}_${profile['id']}',
+            userId: profile['id'], // Use actual trainer ID
+            userName: profile['name'],
+            userImage: profile['profileImage'],
+          ),
+        ),
+      );
+    } catch (e) {
+      _showErrorSnackBar(context, 'Failed to open chat: $e');
+    }
+  }
+
+  void _showSubscriptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        backgroundColor: Colors.white,
+        title: Text(
+          "Subscription Required",
+          style: GoogleFonts.poppins(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        content: Text(
+          "You need an active subscription to make calls. Please subscribe to continue.",
+          style: GoogleFonts.poppins(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "Cancel",
+              style: GoogleFonts.poppins(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Navigate to subscription screen
+            },
+            child: Text(
+              "Subscribe",
+              style: GoogleFonts.poppins(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
       ),
     );
   }

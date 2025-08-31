@@ -113,7 +113,8 @@ class Professional {
 
 // Service class
 class HomeServices {
-  static const String _baseUrl = 'https://fitness-backend-eight.vercel.app';
+  //https://fitness-backend-eight.vercel.app
+  static const String _baseUrl = 'http://10.0.2.2:5001';
   static const String _verifiedProfessionalsEndpoint =
       '/api/user/verified-trainers';
 

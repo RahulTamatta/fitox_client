@@ -1,0 +1,225 @@
+import 'package:flutter/material.dart';
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'agora_token_service.dart';
+
+class AgoraRtcService {
+  static RtcEngine? _engine;
+  static String? _currentToken;
+  static String? _currentChannel;
+  static int? _currentUid;
+  static bool _isJoined = false;
+
+  // Callbacks
+  static Function(int uid, int elapsed)? onUserJoined;
+  static Function(int uid, UserOfflineReasonType reason)? onUserOffline;
+  static Function(ConnectionStateType state, ConnectionChangedReasonType reason)? onConnectionStateChanged;
+  static Function()? onTokenPrivilegeWillExpire;
+  static Function(ErrorCodeType err)? onError;
+
+  static Future<bool> initialize() async {
+    try {
+      _engine = createAgoraRtcEngine();
+      await _engine!.initialize(const RtcEngineContext(
+        appId: '', // Will be set when joining channel
+        channelProfile: ChannelProfileType.channelProfileCommunication,
+      ));
+
+      await _engine!.enableVideo();
+      await _engine!.enableAudio();
+
+      _engine!.registerEventHandler(
+        RtcEngineEventHandler(
+          onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+            print('Joined channel: ${connection.channelId}');
+            _isJoined = true;
+          },
+          onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
+            print('User joined: $remoteUid');
+            onUserJoined?.call(remoteUid, elapsed);
+          },
+          onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+            print('User offline: $remoteUid');
+            onUserOffline?.call(remoteUid, reason);
+          },
+          onConnectionStateChanged: (RtcConnection connection, ConnectionStateType state, ConnectionChangedReasonType reason) {
+            print('Connection state changed: $state, reason: $reason');
+            onConnectionStateChanged?.call(state, reason);
+          },
+          onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
+            print('Token will expire, renewing...');
+            onTokenPrivilegeWillExpire?.call();
+            _renewToken();
+          },
+          onError: (ErrorCodeType err, String msg) {
+            print('RTC Error: $err, $msg');
+            onError?.call(err);
+          },
+        ),
+      );
+
+      return true;
+    } catch (e) {
+      print('Failed to initialize Agora RTC: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> requestPermissions() async {
+    final permissions = [Permission.camera, Permission.microphone];
+    final statuses = await permissions.request();
+    
+    return statuses.values.every((status) => status == PermissionStatus.granted);
+  }
+
+  static Future<bool> joinChannel({
+    required String channelName,
+    required String userId,
+    bool isVideoCall = true,
+  }) async {
+    try {
+      if (!await requestPermissions()) {
+        print('Permissions not granted');
+        return false;
+      }
+
+      final uid = int.tryParse(userId) ?? DateTime.now().millisecondsSinceEpoch;
+      
+      // Get RTC token from backend
+      final tokenData = await AgoraTokenService.getRtcToken(
+        channelName: channelName,
+        uid: uid,
+        role: 'publisher',
+      );
+
+      if (tokenData == null) {
+        print('Failed to get RTC token');
+        return false;
+      }
+
+      _currentToken = tokenData['token'];
+      _currentChannel = channelName;
+      _currentUid = uid;
+
+      // Update engine with app ID
+      await _engine!.initialize(RtcEngineContext(
+        appId: tokenData['appId'],
+        channelProfile: ChannelProfileType.channelProfileCommunication,
+      ));
+
+      if (!isVideoCall) {
+        await _engine!.disableVideo();
+      }
+
+      final options = ChannelMediaOptions(
+        clientRoleType: ClientRoleType.clientRoleBroadcaster,
+        channelProfile: ChannelProfileType.channelProfileCommunication,
+      );
+
+      await _engine!.joinChannel(
+        token: _currentToken!,
+        channelId: channelName,
+        uid: uid,
+        options: options,
+      );
+
+      return true;
+    } catch (e) {
+      print('Failed to join channel: $e');
+      return false;
+    }
+  }
+
+  static Future<void> leaveChannel() async {
+    try {
+      await _engine!.leaveChannel();
+      _isJoined = false;
+      _currentToken = null;
+      _currentChannel = null;
+      _currentUid = null;
+    } catch (e) {
+      print('Failed to leave channel: $e');
+    }
+  }
+
+  static bool _isMuted = false;
+  
+  static Future<void> toggleMute() async {
+    try {
+      _isMuted = !_isMuted;
+      await _engine!.muteLocalAudioStream(_isMuted);
+    } catch (e) {
+      print('Failed to toggle mute: $e');
+    }
+  }
+
+  static bool _isCameraOff = false;
+  
+  static Future<void> toggleCamera() async {
+    try {
+      _isCameraOff = !_isCameraOff;
+      await _engine!.muteLocalVideoStream(_isCameraOff);
+    } catch (e) {
+      print('Failed to toggle camera: $e');
+    }
+  }
+
+  static Future<void> switchCamera() async {
+    try {
+      await _engine!.switchCamera();
+    } catch (e) {
+      print('Failed to switch camera: $e');
+    }
+  }
+
+  static Future<void> _renewToken() async {
+    if (_currentChannel == null || _currentUid == null) return;
+
+    try {
+      final tokenData = await AgoraTokenService.getRtcToken(
+        channelName: _currentChannel!,
+        uid: _currentUid!,
+        role: 'publisher',
+      );
+
+      if (tokenData != null) {
+        await _engine!.renewToken(tokenData['token']);
+        _currentToken = tokenData['token'];
+      }
+    } catch (e) {
+      print('Failed to renew token: $e');
+    }
+  }
+
+  static Widget createLocalVideoView() {
+    return AgoraVideoView(
+      controller: VideoViewController(
+        rtcEngine: _engine!,
+        canvas: const VideoCanvas(uid: 0),
+      ),
+    );
+  }
+
+  static Widget createRemoteVideoView(int uid) {
+    return AgoraVideoView(
+      controller: VideoViewController.remote(
+        rtcEngine: _engine!,
+        canvas: VideoCanvas(uid: uid),
+        connection: RtcConnection(channelId: _currentChannel),
+      ),
+    );
+  }
+
+  static Future<void> dispose() async {
+    try {
+      await leaveChannel();
+      await _engine!.release();
+      _engine = null;
+    } catch (e) {
+      print('Failed to dispose Agora RTC: $e');
+    }
+  }
+
+  static bool get isJoined => _isJoined;
+  static RtcEngine? get engine => _engine;
+}
