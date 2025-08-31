@@ -16,12 +16,14 @@ class ChatLoading extends ChatState {}
 class ChatLoaded extends ChatState {
   final List<ChatMessage> messages;
   final bool isTyping;
+  final bool otherUserTyping;
   final String? error;
   final UserInfo? otherUserInfo;
 
   const ChatLoaded({
     required this.messages,
     this.isTyping = false,
+    this.otherUserTyping = false,
     this.error,
     this.otherUserInfo,
   });
@@ -29,19 +31,21 @@ class ChatLoaded extends ChatState {
   ChatLoaded copyWith({
     List<ChatMessage>? messages,
     bool? isTyping,
+    bool? otherUserTyping,
     String? error,
     UserInfo? otherUserInfo,
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
       isTyping: isTyping ?? this.isTyping,
+      otherUserTyping: otherUserTyping ?? this.otherUserTyping,
       error: error,
       otherUserInfo: otherUserInfo ?? this.otherUserInfo,
     );
   }
 
   @override
-  List<Object?> get props => [messages, isTyping, error, otherUserInfo];
+  List<Object?> get props => [messages, isTyping, otherUserTyping, error, otherUserInfo];
 }
 
 class ChatError extends ChatState {

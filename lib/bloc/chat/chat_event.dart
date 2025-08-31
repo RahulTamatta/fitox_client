@@ -33,8 +33,9 @@ class ChatMessageReceived extends ChatEvent {
 
 class ChatTypingChanged extends ChatEvent {
   final bool isTyping;
-  ChatTypingChanged(this.isTyping);
+  final bool isOtherUserTyping;
+  ChatTypingChanged(this.isTyping, {this.isOtherUserTyping = false});
 
   @override
-  List<Object?> get props => [isTyping];
+  List<Object?> get props => [isTyping, isOtherUserTyping];
 }

@@ -16,8 +16,8 @@ class ChatScreen extends StatefulWidget {
   final String? userImage;
 
   const ChatScreen({
-    super.key, 
-    required this.chatId, 
+    super.key,
+    required this.chatId,
     required this.userId,
     this.userName,
     this.userImage,
@@ -40,7 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _initializeChat() async {
     final prefs = await SharedPreferences.getInstance();
     _currentUserId = prefs.getString('userId');
-    
+
     if (mounted) setState(() {});
   }
 
@@ -60,8 +60,14 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     return BlocProvider(
-      create: (_) => ChatBloc()
-        ..add(ChatStarted(currentUserId: _currentUserId!, otherUserId: widget.userId)),
+      create:
+          (_) =>
+              ChatBloc()..add(
+                ChatStarted(
+                  currentUserId: _currentUserId!,
+                  otherUserId: widget.userId,
+                ),
+              ),
       child: Scaffold(
         backgroundColor: AppTheme.primaryColor,
         appBar: _buildAppBar(),
@@ -80,7 +86,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Text(
                       state.message,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(color: Colors.white, fontSize: 12),
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -94,22 +103,28 @@ class _ChatScreenState extends State<ChatScreen> {
             return Column(
               children: [
                 Expanded(
-                  child: messages.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No messages yet. Start the conversation!',
-                            style: TextStyle(color: Colors.white70),
+                  child:
+                      messages.isEmpty
+                          ? const Center(
+                            child: Text(
+                              'No messages yet. Start the conversation!',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          )
+                          : ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            reverse: true,
+                            itemCount: messages.length,
+                            itemBuilder: (context, index) {
+                              final reversedIndex = messages.length - 1 - index;
+                              return _buildMessageBubble(
+                                messages[reversedIndex],
+                              );
+                            },
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          reverse: true,
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            final reversedIndex = messages.length - 1 - index;
-                            return _buildMessageBubble(messages[reversedIndex]);
-                          },
-                        ),
                 ),
                 _buildMessageInputBarBloc(context),
               ],
@@ -133,55 +148,64 @@ class _ChatScreenState extends State<ChatScreen> {
           BlocBuilder<ChatBloc, ChatState>(
             builder: (context, state) {
               String? displayImage = widget.userImage;
-              
+
               // Use fetched user info image if available
               if (state is ChatLoaded && state.otherUserInfo != null) {
-                displayImage = state.otherUserInfo!.profileImage ?? widget.userImage;
+                displayImage =
+                    state.otherUserInfo!.profileImage ?? widget.userImage;
               }
-              
+
+              final bool hasValidImage =
+                  displayImage != null && displayImage.isNotEmpty;
+
               return CircleAvatar(
-                backgroundImage: displayImage != null
-                    ? NetworkImage(displayImage)
-                    : const NetworkImage(
-                        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1280&q=80",
-                      ),
+                backgroundImage:
+                    hasValidImage
+                        ? NetworkImage(displayImage!)
+                        : const NetworkImage(
+                          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1280&q=80",
+                        ),
                 radius: 18,
               );
             },
           ),
           const SizedBox(width: 10),
-          BlocBuilder<ChatBloc, ChatState>(
-            builder: (context, state) {
-              String displayName = widget.userName ?? "User";
-              
-              // Use fetched user info if available
-              if (state is ChatLoaded && state.otherUserInfo != null) {
-                displayName = state.otherUserInfo!.name;
-              }
-              
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    maxLines: 1,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+          Expanded(
+            child: BlocBuilder<ChatBloc, ChatState>(
+              builder: (context, state) {
+                String displayName = widget.userName ?? "User";
+
+                // Use fetched user info if available
+                if (state is ChatLoaded && state.otherUserInfo != null) {
+                  displayName = state.otherUserInfo!.name;
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 1,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    state is ChatLoaded && state.isTyping ? "Typing..." : "Online",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 12,
+                    Text(
+                      state is ChatLoaded && state.otherUserTyping
+                          ? "Typing..."
+                          : "Online",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -259,35 +283,15 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageStatusIcon(MessageStatus status) {
     switch (status) {
       case MessageStatus.sending:
-        return Icon(
-          Icons.access_time,
-          size: 14,
-          color: Colors.white70,
-        );
+        return Icon(Icons.access_time, size: 14, color: Colors.white70);
       case MessageStatus.sent:
-        return Icon(
-          Icons.check,
-          size: 14,
-          color: Colors.white70,
-        );
+        return Icon(Icons.check, size: 14, color: Colors.white70);
       case MessageStatus.delivered:
-        return Icon(
-          Icons.done_all,
-          size: 14,
-          color: Colors.white70,
-        );
+        return Icon(Icons.done_all, size: 14, color: Colors.white70);
       case MessageStatus.read:
-        return Icon(
-          Icons.done_all,
-          size: 14,
-          color: Colors.blue,
-        );
+        return Icon(Icons.done_all, size: 14, color: Colors.blue);
       case MessageStatus.failed:
-        return Icon(
-          Icons.error_outline,
-          size: 14,
-          color: Colors.red.shade300,
-        );
+        return Icon(Icons.error_outline, size: 14, color: Colors.red.shade300);
     }
   }
 
@@ -350,7 +354,7 @@ class _ChatScreenState extends State<ChatScreen> {
             //         if (_messageController.text.trim().isNotEmpty) {
             //           final text = _messageController.text.trim();
             //           _messageController.clear();
-            //           
+            //
             //           // Send via chat provider if subscription is active
             //           await chatProvider.sendMessage(text);
             //         }
@@ -370,4 +374,3 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
-

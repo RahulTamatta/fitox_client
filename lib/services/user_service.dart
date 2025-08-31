@@ -1,23 +1,27 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_info.dart';
 
 class UserService {
-  static const String baseUrl = 'http://localhost:5001/api';
-  
+  static String get baseUrl =>
+      Platform.isAndroid
+          ? 'http://10.0.2.2:5001/api'
+          : 'http://localhost:5001/api';
+
   static Future<UserInfo?> getUserInfo(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      
+
       if (token == null) {
         print('No auth token found');
         return null;
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/users/$userId'),
+        Uri.parse('${baseUrl}/users/$userId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -41,11 +45,11 @@ class UserService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      
+
       if (token == null) return [];
 
       final response = await http.get(
-        Uri.parse('$baseUrl/users/search?q=$query'),
+        Uri.parse('${baseUrl}/users/search?q=$query'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
