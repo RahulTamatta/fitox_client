@@ -43,8 +43,7 @@ class BlogResponse {
 
 class CommunityService {
   static const String _baseUrlLocal = 'http://localhost:5000/api/blog';
-  static const String _baseUrlRemote =
-      'https://fitox-server.onrender.com/api/blog';
+  static const String _baseUrlRemote = 'http://10.0.2.2:5001/blog';
   static const String _baseUrlGetBlogs =
       'https://fitness-backend-node.onrender.com/api/blog';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();

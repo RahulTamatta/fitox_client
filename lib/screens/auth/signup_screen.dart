@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import '../../global/app_permission_handler.dart';
 import '../../themes/app_theme.dart';
 import 'login_screen.dart';
+import 'package:fit_talk/screens/trainer/join_expert_page.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -125,14 +126,24 @@ class _SignupScreenState extends State<SignupScreen>
       setState(() => _isLoading = false);
 
       if (response.success && response.data != null) {
-        // Navigate to LoginScreen on successful registration
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+        // Navigate based on selected role
+        if (!_isTrainer) {
+          // User selected → start Join as Expert flow
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const JoinExpertPage()),
+          );
+        } else {
+          // Trainer selected → proceed to login
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Registration Successful! Please log in.',
+              _isTrainer
+                  ? 'Registration Successful! Please log in.'
+                  : 'Registration Successful! Complete your expert profile.',
               style: GoogleFonts.raleway(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,

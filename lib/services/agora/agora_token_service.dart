@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AgoraTokenService {
-  static const String _baseUrl = 'https://fitox-server.onrender.com/api/agora';
+  static const String _baseUrl = 'http://10.0.2.2:5001/agora';
 
   static Future<Map<String, dynamic>?> getRtcToken({
     required String channelName,

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ChatService {
-  static const String _baseUrl = 'https://fitox-server.onrender.com/api/chat';
+  static const String _baseUrl = 'http://10.0.2.2:5001/chat';
   final http.Client _client;
 
   ChatService({http.Client? client}) : _client = client ?? http.Client();

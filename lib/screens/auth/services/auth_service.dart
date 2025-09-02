@@ -115,7 +115,7 @@ class User {
 }
 
 class AuthService {
-  static const String _baseUrl = 'https://fitox-server.onrender.com/api';
+  static const String _baseUrl = 'http://10.0.2.2:5001';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final http.Client _client = http.Client();
 
@@ -159,7 +159,7 @@ class AuthService {
       if (profileImage != null) {
         final request = http.MultipartRequest(
           'POST',
-          Uri.parse('$_baseUrl/user/register'),
+          Uri.parse('$_baseUrl/api/user/register'),
         );
 
         body.forEach((key, value) {
@@ -235,7 +235,7 @@ class AuthService {
         }
       } else {
         final response = await _client.post(
-          Uri.parse('$_baseUrl/user/register'),
+          Uri.parse('$_baseUrl/api/user/register'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(body),
         );
@@ -290,7 +290,7 @@ class AuthService {
   Future<AuthResponse> login(String email, String password) async {
     try {
       final response = await _client.post(
-        Uri.parse('$_baseUrl/user/login'),
+        Uri.parse('$_baseUrl/api/user/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );

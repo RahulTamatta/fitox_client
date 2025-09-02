@@ -8,6 +8,8 @@ import '../../models/chat_message.dart';
 import '../../bloc/chat/chat_bloc.dart';
 import '../../bloc/chat/chat_event.dart';
 import '../../bloc/chat/chat_state.dart';
+import '../call/call_screen.dart';
+import '../../providers/call_provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -30,6 +32,14 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   String? _currentUserId;
+  bool _isValidHttpUrl(String? url) {
+    if (url == null) return false;
+    final s = url.trim();
+    if (s.isEmpty) return false;
+    final uri = Uri.tryParse(s);
+    if (uri == null) return false;
+    return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
 
   @override
   void initState() {
@@ -155,16 +165,15 @@ class _ChatScreenState extends State<ChatScreen> {
                     state.otherUserInfo!.profileImage ?? widget.userImage;
               }
 
-              final bool hasValidImage =
-                  displayImage != null && displayImage.isNotEmpty;
+              final bool hasValidImage = _isValidHttpUrl(displayImage);
 
               return CircleAvatar(
-                backgroundImage:
-                    hasValidImage
-                        ? NetworkImage(displayImage!)
-                        : const NetworkImage(
-                          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1280&q=80",
-                        ),
+                backgroundImage: hasValidImage
+                    ? NetworkImage(displayImage!)
+                    : null,
+                child: hasValidImage
+                    ? null
+                    : const Icon(Icons.person, color: Colors.white),
                 radius: 18,
               );
             },
@@ -212,11 +221,35 @@ class _ChatScreenState extends State<ChatScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.videocam, color: Colors.white),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CallScreen(
+                  calleeId: widget.userId,
+                  calleeName: widget.userName ?? 'User',
+                  calleeImage: widget.userImage,
+                  callType: CallType.video,
+                ),
+              ),
+            );
+          },
         ),
         IconButton(
           icon: const Icon(Icons.call, color: Colors.white),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CallScreen(
+                  calleeId: widget.userId,
+                  calleeName: widget.userName ?? 'User',
+                  calleeImage: widget.userImage,
+                  callType: CallType.audio,
+                ),
+              ),
+            );
+          },
         ),
         IconButton(
           icon: const Icon(Icons.more_vert, color: Colors.white),

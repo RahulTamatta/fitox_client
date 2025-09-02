@@ -4,6 +4,7 @@ import '../services/agora/agora_rtc_service.dart';
 import '../services/subscription_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
+import '../services/call_signaling_service.dart';
 
 enum CallState { idle, connecting, ringing, connected, reconnecting, ended }
 enum CallType { audio, video }
@@ -20,6 +21,9 @@ class CallProvider with ChangeNotifier {
   String? _error;
   bool _isConnected = true;
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  String? _callerId;
+  String? _calleeId;
+  String? _selfId;
 
   CallState get callState => _callState;
   CallType get callType => _callType;
@@ -52,11 +56,16 @@ class CallProvider with ChangeNotifier {
 
       _callType = type;
       _callState = CallState.connecting;
+      _callerId = callerId;
+      _calleeId = calleeId;
+      _selfId = callerId;
       _channelName = 'call_${callerId}_${calleeId}_${DateTime.now().millisecondsSinceEpoch}';
       notifyListeners();
 
       // Initialize RTC service
       await AgoraRtcService.initialize();
+      // Initialize signaling service
+      await CallSignalingService.init(callerId);
       
       // Set up callbacks
       AgoraRtcService.onUserJoined = _handleUserJoined;
@@ -79,6 +88,15 @@ class CallProvider with ChangeNotifier {
         _callState = CallState.ringing;
         _isCameraOn = type == CallType.video;
         notifyListeners();
+        // Send call invite via signaling
+        CallSignalingService.invite(
+          from: callerId,
+          to: calleeId,
+          channelName: _channelName!,
+          callType: type == CallType.video ? 'video' : 'audio',
+        );
+        // Listen for responses
+        _bindSignalingHandlers();
         return true;
       } else {
         _callState = CallState.ended;
@@ -97,6 +115,16 @@ class CallProvider with ChangeNotifier {
   Future<void> endCall() async {
     try {
       await AgoraRtcService.leaveChannel();
+      // Notify peer
+      if (_callerId != null && _calleeId != null && _channelName != null && _selfId != null) {
+        final me = _selfId!;
+        final other = me == _callerId ? _calleeId! : _callerId!;
+        CallSignalingService.end(
+          from: me,
+          to: other,
+          channelName: _channelName!,
+        );
+      }
       _callState = CallState.ended;
       _isRemoteUserJoined = false;
       _remoteUid = null;
@@ -105,6 +133,74 @@ class CallProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Failed to end call: $e');
+    }
+  }
+
+  // Incoming call actions (to be used by IncomingCallScreen)
+  Future<void> acceptIncomingCall({
+    required String currentUserId,
+    required String otherUserId,
+    required String channelName,
+    required CallType type,
+  }) async {
+    try {
+      _callType = type;
+      _callState = CallState.connecting;
+      _callerId = otherUserId; // caller is the other user
+      _calleeId = currentUserId; // current user is callee
+      _selfId = currentUserId;
+      _channelName = channelName;
+      notifyListeners();
+
+      await AgoraRtcService.initialize();
+      await CallSignalingService.init(currentUserId);
+      _bindSignalingHandlers();
+
+      final success = await AgoraRtcService.joinChannel(
+        channelName: channelName,
+        userId: currentUserId,
+        isVideoCall: type == CallType.video,
+      );
+      if (success) {
+        _callState = CallState.connected; // will become connected when remote joins
+        _isCameraOn = type == CallType.video;
+        notifyListeners();
+        // Notify caller
+        CallSignalingService.accept(
+          from: currentUserId,
+          to: otherUserId,
+          channelName: channelName,
+        );
+      } else {
+        _callState = CallState.ended;
+        _error = 'Failed to join call';
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Failed to accept call: $e';
+      _callState = CallState.ended;
+      notifyListeners();
+    }
+  }
+
+  void rejectIncomingCall({
+    required String currentUserId,
+    required String otherUserId,
+    required String channelName,
+    String? reason,
+  }) {
+    try {
+      CallSignalingService.reject(
+        from: currentUserId,
+        to: otherUserId,
+        channelName: channelName,
+        reason: reason,
+      );
+      _callState = CallState.ended;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to reject call: $e';
+      notifyListeners();
     }
   }
 
@@ -203,6 +299,40 @@ class CallProvider with ChangeNotifier {
       _isConnected = result != ConnectivityResult.none;
       notifyListeners();
     });
+  }
+
+  void _bindSignalingHandlers() {
+    CallSignalingService.onAccepted = (data) {
+      // Peer accepted; if we are ringing, move to connecting/connected
+      if (_callState == CallState.ringing || _callState == CallState.connecting) {
+        _callState = _isRemoteUserJoined ? CallState.connected : CallState.connecting;
+        notifyListeners();
+      }
+    };
+    CallSignalingService.onRejected = (data) {
+      _error = 'Call rejected';
+      _callState = CallState.ended;
+      notifyListeners();
+    };
+    CallSignalingService.onCanceled = (data) {
+      _error = 'Call canceled';
+      _callState = CallState.ended;
+      notifyListeners();
+    };
+    CallSignalingService.onEnded = (data) {
+      _callState = CallState.ended;
+      notifyListeners();
+    };
+    CallSignalingService.onTimeout = (data) {
+      _error = 'Call timed out';
+      _callState = CallState.ended;
+      notifyListeners();
+    };
+    CallSignalingService.onUnavailable = (data) {
+      _error = 'User unavailable';
+      _callState = CallState.ended;
+      notifyListeners();
+    };
   }
 
   Widget? getLocalVideoView() {

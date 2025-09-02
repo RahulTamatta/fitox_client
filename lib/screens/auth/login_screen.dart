@@ -412,11 +412,15 @@ class _LoginScreenState extends State<LoginScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          "Don't have an account? ",
-                          style: GoogleFonts.raleway(
-                            fontSize: 14.sp,
-                            color: Colors.grey.shade600,
+                        Flexible(
+                          child: Text(
+                            "Don't have an account? ",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.raleway(
+                              fontSize: 14.sp,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ),
                         TextButton(

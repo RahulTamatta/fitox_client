@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../themes/app_theme.dart';
 import '../navigator/bottom_navigator_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -56,6 +57,18 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkLoginStatus() async {
     // Wait for a short duration to show the splash screen
     await Future.delayed(const Duration(seconds: 2));
+
+    // Pre-request camera and microphone permissions for calling
+    try {
+      final statuses = await [Permission.camera, Permission.microphone].request();
+      // Optionally handle denied/permanentlyDenied here
+      if (statuses[Permission.camera]?.isPermanentlyDenied == true ||
+          statuses[Permission.microphone]?.isPermanentlyDenied == true) {
+        // Open app settings if permanently denied
+        // ignore: unawaited_futures
+        openAppSettings();
+      }
+    } catch (_) {}
 
     // Get SharedPreferences instance
     final prefs = await SharedPreferences.getInstance();

@@ -13,8 +13,19 @@ import '../account/account_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // Fallback image URL for empty profileImage
-  static const String _fallbackImageUrl = 'https://via.placeholder.com/150';
+  // Fallback image URL for empty profileImage (use a reliable host)
+  static const String _fallbackImageUrl = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=60';
+
+  bool _isValidImageUrl(String? url) {
+    if (url == null) return false;
+    final s = url.trim();
+    if (s.isEmpty) return false;
+    if (s.toLowerCase() == 'null' || s.toLowerCase() == 'undefined')
+      return false;
+    final uri = Uri.tryParse(s);
+    if (uri == null) return false;
+    return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,13 +57,13 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(height: 24.h),
 
                     // Hero Banner
-                    _buildHeroBanner(context),
-                    SizedBox(height: 24.h),
+                    // _buildHeroBanner(context),
+                    // SizedBox(height: 24.h),
 
-                    // Workout Categories
-                    _buildSectionHeader("Your Fitness Goals", "View All"),
-                    SizedBox(height: 12.h),
-                    _buildWorkoutCategories(),
+                    // // Workout Categories
+                    // _buildSectionHeader("Your Fitness Goals", "View All"),
+                    // SizedBox(height: 12.h),
+                    // _buildWorkoutCategories(),
                     SizedBox(height: 24.h),
 
                     // Meet Our Trainers Section
@@ -215,116 +226,116 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Hero Banner (Workout Motivation)
-  Widget _buildHeroBanner(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Container(
-        height: 160.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12.r),
-          gradient: LinearGradient(
-            colors: [
-              Colors.white.withOpacity(0.95),
-              AppTheme.primaryColor.withOpacity(0.85),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: 0.w,
-              bottom: 0.h,
-              child: Opacity(
-                opacity: 0.6,
-                child: CachedNetworkImage(
-                  imageUrl:
-                      "https://m.media-amazon.com/images/I/716C77M+qmL._AC_UF1000,1000_QL80_.jpg",
-                  height: 140.h,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Summer Body Challenge",
-                    style: GoogleFonts.raleway(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 6.h),
-                  Text(
-                    "Join now and get 30% off on personal training",
-                    style: GoogleFonts.poppins(
-                      fontSize: 12.sp,
-                      color: Colors.black54,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  InkWell(
-                    onTap: () {},
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(10.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "Join Now",
-                            style: GoogleFonts.poppins(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                          SizedBox(width: 6.w),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 14.sp,
-                            color: Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // // Hero Banner (Workout Motivation)
+  // Widget _buildHeroBanner(BuildContext context) {
+  //   return Padding(
+  //     padding: EdgeInsets.symmetric(horizontal: 16.w),
+  //     child: Container(
+  //       height: 160.h,
+  //       width: double.infinity,
+  //       decoration: BoxDecoration(
+  //         borderRadius: BorderRadius.circular(12.r),
+  //         gradient: LinearGradient(
+  //           colors: [
+  //             Colors.white.withOpacity(0.95),
+  //             AppTheme.primaryColor.withOpacity(0.85),
+  //           ],
+  //           begin: Alignment.topLeft,
+  //           end: Alignment.bottomRight,
+  //         ),
+  //         boxShadow: [
+  //           BoxShadow(
+  //             color: Colors.black.withOpacity(0.1),
+  //             blurRadius: 10,
+  //             offset: const Offset(0, 4),
+  //           ),
+  //         ],
+  //       ),
+  //       child: Stack(
+  //         children: [
+  //           Positioned(
+  //             right: 0.w,
+  //             bottom: 0.h,
+  //             child: Opacity(
+  //               opacity: 0.6,
+  //               child: CachedNetworkImage(
+  //                 imageUrl:
+  //                     "https://m.media-amazon.com/images/I/716C77M+qmL._AC_UF1000,1000_QL80_.jpg",
+  //                 height: 140.h,
+  //                 fit: BoxFit.contain,
+  //               ),
+  //             ),
+  //           ),
+  //           Padding(
+  //             padding: EdgeInsets.all(16.w),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               mainAxisAlignment: MainAxisAlignment.center,
+  //               children: [
+  //                 Text(
+  //                   "Summer Body Challenge",
+  //                   style: GoogleFonts.raleway(
+  //                     fontSize: 16.sp,
+  //                     fontWeight: FontWeight.bold,
+  //                     color: Colors.black87,
+  //                   ),
+  //                 ),
+  //                 SizedBox(height: 6.h),
+  //                 Text(
+  //                   "Join now and get 30% off on personal training",
+  //                   style: GoogleFonts.poppins(
+  //                     fontSize: 12.sp,
+  //                     color: Colors.black54,
+  //                   ),
+  //                 ),
+  //                 SizedBox(height: 12.h),
+  //                 InkWell(
+  //                   onTap: () {},
+  //                   child: Container(
+  //                     padding: EdgeInsets.symmetric(
+  //                       horizontal: 14.w,
+  //                       vertical: 8.h,
+  //                     ),
+  //                     decoration: BoxDecoration(
+  //                       color: AppTheme.primaryColor,
+  //                       borderRadius: BorderRadius.circular(10.r),
+  //                       boxShadow: [
+  //                         BoxShadow(
+  //                           color: Colors.black.withOpacity(0.1),
+  //                           blurRadius: 6,
+  //                           offset: const Offset(0, 2),
+  //                         ),
+  //                       ],
+  //                     ),
+  //                     child: Row(
+  //                       mainAxisSize: MainAxisSize.min,
+  //                       children: [
+  //                         Text(
+  //                           "Join Now",
+  //                           style: GoogleFonts.poppins(
+  //                             fontSize: 12.sp,
+  //                             fontWeight: FontWeight.w600,
+  //                             color: Colors.white,
+  //                           ),
+  //                         ),
+  //                         SizedBox(width: 6.w),
+  //                         Icon(
+  //                           Icons.arrow_forward_rounded,
+  //                           size: 14.sp,
+  //                           color: Colors.white,
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   // Workout Categories (Filter by Goals)
   Widget _buildWorkoutCategories() {
@@ -565,6 +576,141 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // Unified professional card (same as trainer card)
+  Widget _buildProfessionalCard(BuildContext context, Professional p) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TrainerDetailsScreen(trainer: p),
+          ),
+        );
+      },
+      child: Container(
+        width: 140.w,
+        margin: EdgeInsets.only(right: 12.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
+              child: Stack(
+                children: [
+                  CachedNetworkImage(
+                    imageUrl:
+                        _isValidImageUrl(p.profileImage)
+                            ? p.profileImage
+                            : _fallbackImageUrl,
+                    height: 100.h,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder:
+                        (context, url) => Shimmer.fromColors(
+                          baseColor: Colors.grey.shade300,
+                          highlightColor: Colors.grey.shade100,
+                          child: Container(
+                            height: 100.h,
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                    errorWidget:
+                        (context, url, error) => Container(
+                          height: 100.h,
+                          width: double.infinity,
+                          color: Colors.grey.shade300,
+                          alignment: Alignment.center,
+                          child: Icon(Icons.image_not_supported, color: Colors.grey.shade600),
+                        ),
+                  ),
+                  Positioned(
+                    bottom: 6.w,
+                    left: 6.w,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 6.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            color: Colors.amber,
+                            size: 12.sp,
+                          ),
+                          SizedBox(width: 3.w),
+                          Text(
+                            p.rating.toStringAsFixed(1),
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(10.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    p.name,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 3.h),
+                  Text(
+                    p.trainerType,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11.sp,
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 6.h),
+                  Text(
+                    "${p.followers} followers",
+                    style: GoogleFonts.poppins(
+                      fontSize: 9.sp,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Trainers List
   Widget _buildTrainerList(List<Professional> trainers) {
     return trainers.isEmpty
@@ -587,138 +733,7 @@ class HomeScreen extends StatelessWidget {
             itemCount: trainers.length,
             itemBuilder: (context, index) {
               final trainer = trainers[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => TrainerDetailsScreen(trainer: trainer),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 140.w,
-                  margin: EdgeInsets.only(right: 12.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(12.r),
-                        ),
-                        child: Stack(
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl:
-                                  trainer.profileImage.isNotEmpty
-                                      ? trainer.profileImage
-                                      : _fallbackImageUrl,
-                              height: 100.h,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              placeholder:
-                                  (context, url) => Shimmer.fromColors(
-                                    baseColor: Colors.grey.shade300,
-                                    highlightColor: Colors.grey.shade100,
-                                    child: Container(
-                                      height: 100.h,
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                              errorWidget:
-                                  (context, url, error) => Icon(
-                                    Icons.error,
-                                    size: 40.sp,
-                                    color: Colors.red.shade400,
-                                  ),
-                            ),
-                            Positioned(
-                              bottom: 6.w,
-                              left: 6.w,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6.w,
-                                  vertical: 3.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(10.r),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.star_rounded,
-                                      color: Colors.amber,
-                                      size: 12.sp,
-                                    ),
-                                    SizedBox(width: 3.w),
-                                    Text(
-                                      trainer.rating.toStringAsFixed(1),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11.sp,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              trainer.name,
-                              style: GoogleFonts.poppins(
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 3.h),
-                            Text(
-                              trainer.trainerType,
-                              style: GoogleFonts.poppins(
-                                fontSize: 11.sp,
-                                color: Colors.grey.shade600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              "${trainer.followers} followers", // Using followers as a proxy for reviews
-                              style: GoogleFonts.poppins(
-                                fontSize: 9.sp,
-                                color: Colors.grey.shade500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return _buildProfessionalCard(context, trainer);
             },
           ),
         );
@@ -727,7 +742,7 @@ class HomeScreen extends StatelessWidget {
   // Shimmer for Dermatologists and Dieticians
   Widget _buildDermatologistShimmer() {
     return SizedBox(
-      height: 160.h,
+      height: 180.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.only(left: 16.w),
@@ -737,56 +752,47 @@ class HomeScreen extends StatelessWidget {
             baseColor: Colors.grey.shade300,
             highlightColor: Colors.grey.shade100,
             child: Container(
-              width: 260.w,
+              width: 140.w,
               margin: EdgeInsets.only(right: 12.w),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 100.w,
-                    height: 160.h,
+                    height: 100.h,
                     decoration: BoxDecoration(
                       color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.horizontal(
-                        left: Radius.circular(12.r),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(12.r),
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(10.w),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 120.w,
-                            height: 12.h,
-                            color: Colors.grey.shade300,
-                          ),
-                          SizedBox(height: 6.h),
-                          Container(
-                            width: 80.w,
-                            height: 10.h,
-                            color: Colors.grey.shade300,
-                          ),
-                          SizedBox(height: 6.h),
-                          Container(
-                            width: 100.w,
-                            height: 10.h,
-                            color: Colors.grey.shade300,
-                          ),
-                          SizedBox(height: 6.h),
-                          Container(
-                            width: 60.w,
-                            height: 10.h,
-                            color: Colors.grey.shade300,
-                          ),
-                        ],
-                      ),
+                  Padding(
+                    padding: EdgeInsets.all(10.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 80.w,
+                          height: 12.h,
+                          color: Colors.grey.shade300,
+                        ),
+                        SizedBox(height: 6.h),
+                        Container(
+                          width: 100.w,
+                          height: 10.h,
+                          color: Colors.grey.shade300,
+                        ),
+                        SizedBox(height: 6.h),
+                        Container(
+                          width: 60.w,
+                          height: 8.h,
+                          color: Colors.grey.shade300,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -813,169 +819,14 @@ class HomeScreen extends StatelessWidget {
           ),
         )
         : SizedBox(
-          height: 160.h,
+          height: 180.h,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.only(left: 16.w),
             itemCount: dermatologists.length,
             itemBuilder: (context, index) {
-              final dermatologist = dermatologists[index];
-              return Container(
-                width: 260.w,
-                margin: EdgeInsets.only(right: 12.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.horizontal(
-                        left: Radius.circular(12.r),
-                      ),
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            dermatologist.profileImage.isNotEmpty
-                                ? dermatologist.profileImage
-                                : _fallbackImageUrl,
-                        height: 160.h,
-                        width: 100.w,
-                        fit: BoxFit.cover,
-                        placeholder:
-                            (context, url) => Shimmer.fromColors(
-                              baseColor: Colors.grey.shade300,
-                              highlightColor: Colors.grey.shade100,
-                              child: Container(
-                                height: 160.h,
-                                width: 100.w,
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                        errorWidget:
-                            (context, url, error) => Icon(
-                              Icons.error,
-                              size: 40.sp,
-                              color: Colors.red.shade400,
-                            ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.all(10.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              dermatologist.name,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 3.h),
-                            Text(
-                              dermatologist.trainerType,
-                              style: GoogleFonts.poppins(
-                                fontSize: 12.sp,
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 6.h),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.work_outline_rounded,
-                                  size: 12.sp,
-                                  color: Colors.grey.shade600,
-                                ),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  "${dermatologist.experience} years experience",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 11.sp,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 3.h),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.attach_money_rounded,
-                                  size: 12.sp,
-                                  color: Colors.grey.shade600,
-                                ),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  "\$${dermatologist.feesChat.toStringAsFixed(0)}/chat",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 11.sp,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10.h),
-                            InkWell(
-                              onTap: () {},
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 6.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppTheme.primaryColor,
-                                      AppTheme.primaryColor.withOpacity(0.8),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10.r),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "Book Now",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    SizedBox(width: 3.w),
-                                    Icon(
-                                      Icons.arrow_forward_rounded,
-                                      size: 12.sp,
-                                      color: Colors.white,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              final p = dermatologists[index];
+              return _buildProfessionalCard(context, p);
             },
           ),
         );
@@ -996,169 +847,14 @@ class HomeScreen extends StatelessWidget {
           ),
         )
         : SizedBox(
-          height: 160.h,
+          height: 180.h,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.only(left: 16.w),
             itemCount: dieticians.length,
             itemBuilder: (context, index) {
-              final dietician = dieticians[index];
-              return Container(
-                width: 260.w,
-                margin: EdgeInsets.only(right: 12.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.horizontal(
-                        left: Radius.circular(12.r),
-                      ),
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            dietician.profileImage.isNotEmpty
-                                ? dietician.profileImage
-                                : _fallbackImageUrl,
-                        height: 160.h,
-                        width: 100.w,
-                        fit: BoxFit.cover,
-                        placeholder:
-                            (context, url) => Shimmer.fromColors(
-                              baseColor: Colors.grey.shade300,
-                              highlightColor: Colors.grey.shade100,
-                              child: Container(
-                                height: 160.h,
-                                width: 100.w,
-                                color: Colors.grey.shade300,
-                              ),
-                            ),
-                        errorWidget:
-                            (context, url, error) => Icon(
-                              Icons.error,
-                              size: 40.sp,
-                              color: Colors.red.shade400,
-                            ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.all(10.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              dietician.name,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 3.h),
-                            Text(
-                              dietician.trainerType,
-                              style: GoogleFonts.poppins(
-                                fontSize: 12.sp,
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 6.h),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.work_outline_rounded,
-                                  size: 12.sp,
-                                  color: Colors.grey.shade600,
-                                ),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  "${dietician.experience} years experience",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 11.sp,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 3.h),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.attach_money_rounded,
-                                  size: 12.sp,
-                                  color: Colors.grey.shade600,
-                                ),
-                                SizedBox(width: 3.w),
-                                Text(
-                                  "\$${dietician.feesChat.toStringAsFixed(0)}/chat",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 11.sp,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10.h),
-                            InkWell(
-                              onTap: () {},
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 6.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppTheme.primaryColor,
-                                      AppTheme.primaryColor.withOpacity(0.8),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10.r),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "Book Now",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    SizedBox(width: 3.w),
-                                    Icon(
-                                      Icons.arrow_forward_rounded,
-                                      size: 12.sp,
-                                      color: Colors.white,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              final p = dieticians[index];
+              return _buildProfessionalCard(context, p);
             },
           ),
         );

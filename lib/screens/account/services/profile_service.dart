@@ -25,7 +25,7 @@ class ApiResponse<T> {
 }
 
 class ProfileService {
-  static const String _baseUrl = 'https://fitox-server.onrender.com/api';
+  static const String _baseUrl = 'http://10.0.2.2:5001';
   static const Duration _timeoutDuration = Duration(seconds: 30);
   static const int _maxRetries = 2;
 
@@ -159,7 +159,7 @@ class ProfileService {
     try {
       final response = await _makeRequest(
         method: 'GET',
-        endpoint: '/user/profile/$userId',
+        endpoint: '/api/user/profile/$userId',
         requiresAuth: false, // Set to true if auth is required
       );
 
@@ -185,7 +185,7 @@ class ProfileService {
 
       final response = await _makeRequest(
         method: 'POST',
-        endpoint: '/user/profile/update',
+        endpoint: '/api/user/profile/update',
         body: body,
         requiresAuth: false, // Set to true if auth is required
       );
@@ -207,7 +207,7 @@ class ProfileService {
     try {
       final response = await _makeRequest(
         method: 'GET',
-        endpoint: '/friend/following/$userId',
+        endpoint: '/api/follow/following/$userId',
         requiresAuth: false,
       );
 
@@ -225,7 +225,7 @@ class ProfileService {
     try {
       final response = await _makeRequest(
         method: 'GET',
-        endpoint: '/friend/followers/$userId',
+        endpoint: '/api/follow/followers/$userId',
         requiresAuth: false,
       );
 
@@ -248,7 +248,7 @@ class ProfileService {
 
       final response = await _makeRequest(
         method: 'POST',
-        endpoint: '/friend/follow',
+        endpoint: '/api/follow/follow',
         body: body,
         requiresAuth: false,
       );
@@ -275,7 +275,7 @@ class ProfileService {
 
       final response = await _makeRequest(
         method: 'POST',
-        endpoint: '/friend/unfollow',
+        endpoint: '/api/follow/unfollow',
         body: body,
         requiresAuth: false,
       );

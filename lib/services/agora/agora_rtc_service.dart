@@ -9,6 +9,7 @@ class AgoraRtcService {
   static String? _currentChannel;
   static int? _currentUid;
   static bool _isJoined = false;
+  static bool _engineInitialized = false;
 
   // Callbacks
   static Function(int uid, int elapsed)? onUserJoined;
@@ -19,14 +20,7 @@ class AgoraRtcService {
 
   static Future<bool> initialize() async {
     try {
-      _engine = createAgoraRtcEngine();
-      await _engine!.initialize(const RtcEngineContext(
-        appId: '', // Will be set when joining channel
-        channelProfile: ChannelProfileType.channelProfileCommunication,
-      ));
-
-      await _engine!.enableVideo();
-      await _engine!.enableAudio();
+      _engine ??= createAgoraRtcEngine();
 
       _engine!.registerEventHandler(
         RtcEngineEventHandler(
@@ -101,14 +95,28 @@ class AgoraRtcService {
       _currentChannel = channelName;
       _currentUid = uid;
 
-      // Update engine with app ID
-      await _engine!.initialize(RtcEngineContext(
-        appId: tokenData['appId'],
-        channelProfile: ChannelProfileType.channelProfileCommunication,
-      ));
-
-      if (!isVideoCall) {
-        await _engine!.disableVideo();
+      // Initialize engine with app ID if not already
+      if (!_engineInitialized) {
+        await _engine!.initialize(RtcEngineContext(
+          appId: tokenData['appId'],
+          channelProfile: ChannelProfileType.channelProfileCommunication,
+        ));
+        await _engine!.enableAudio();
+        // Route audio to speakerphone by default for better UX
+        await _engine!.setDefaultAudioRouteToSpeakerphone(true);
+        if (isVideoCall) {
+          await _engine!.enableVideo();
+        } else {
+          await _engine!.disableVideo();
+        }
+        _engineInitialized = true;
+      } else {
+        // Ensure audio/video tracks reflect current call type
+        if (isVideoCall) {
+          await _engine!.enableVideo();
+        } else {
+          await _engine!.disableVideo();
+        }
       }
 
       final options = ChannelMediaOptions(
@@ -132,6 +140,7 @@ class AgoraRtcService {
 
   static Future<void> leaveChannel() async {
     try {
+      if (_engine == null) return;
       await _engine!.leaveChannel();
       _isJoined = false;
       _currentToken = null;
@@ -146,6 +155,7 @@ class AgoraRtcService {
   
   static Future<void> toggleMute() async {
     try {
+      if (_engine == null) throw 'Engine not initialized';
       _isMuted = !_isMuted;
       await _engine!.muteLocalAudioStream(_isMuted);
     } catch (e) {
@@ -157,6 +167,7 @@ class AgoraRtcService {
   
   static Future<void> toggleCamera() async {
     try {
+      if (_engine == null) throw 'Engine not initialized';
       _isCameraOff = !_isCameraOff;
       await _engine!.muteLocalVideoStream(_isCameraOff);
     } catch (e) {
@@ -166,6 +177,7 @@ class AgoraRtcService {
 
   static Future<void> switchCamera() async {
     try {
+      if (_engine == null) throw 'Engine not initialized';
       await _engine!.switchCamera();
     } catch (e) {
       print('Failed to switch camera: $e');
@@ -183,7 +195,9 @@ class AgoraRtcService {
       );
 
       if (tokenData != null) {
-        await _engine!.renewToken(tokenData['token']);
+        if (_engine != null) {
+          await _engine!.renewToken(tokenData['token']);
+        }
         _currentToken = tokenData['token'];
       }
     } catch (e) {
@@ -192,6 +206,7 @@ class AgoraRtcService {
   }
 
   static Widget createLocalVideoView() {
+    if (_engine == null) return const SizedBox.shrink();
     return AgoraVideoView(
       controller: VideoViewController(
         rtcEngine: _engine!,
@@ -201,6 +216,7 @@ class AgoraRtcService {
   }
 
   static Widget createRemoteVideoView(int uid) {
+    if (_engine == null) return const SizedBox.shrink();
     return AgoraVideoView(
       controller: VideoViewController.remote(
         rtcEngine: _engine!,
@@ -213,8 +229,11 @@ class AgoraRtcService {
   static Future<void> dispose() async {
     try {
       await leaveChannel();
-      await _engine!.release();
+      if (_engine != null) {
+        await _engine!.release();
+      }
       _engine = null;
+      _engineInitialized = false;
     } catch (e) {
       print('Failed to dispose Agora RTC: $e');
     }

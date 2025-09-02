@@ -29,9 +29,7 @@ class ChatRepository {
 
       // Use platform-specific URL
       final socketUrl =
-          Platform.isAndroid
-              ? 'https://fitox-server.onrender.com'
-              : 'http://localhost:5001';
+          Platform.isAndroid ? 'http://10.0.2.2:5001' : 'http://localhost:5001';
 
       print(
         '🔌 [ChatRepository] Initializing Socket.io connection to: $socketUrl',
@@ -522,7 +520,7 @@ class ChatRepository {
 
   static String _baseUrl() {
     return Platform.isAndroid
-        ? 'https://fitox-server.onrender.com'
+        ? 'http://10.0.2.2:5001'
         : 'http://localhost:5001';
   }
 

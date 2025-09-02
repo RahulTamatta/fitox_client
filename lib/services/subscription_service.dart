@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SubscriptionService {
-  static const String _baseUrl = 'https://fitox-server.onrender.com/api/agora';
+  static const String _baseUrl = 'http://10.0.2.2:5001/agora';
   static Map<String, dynamic>? _cachedStatus;
   static DateTime? _lastCacheTime;
   static const Duration _cacheValidDuration = Duration(minutes: 5);

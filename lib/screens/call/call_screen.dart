@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/call_provider.dart';
 import '../../themes/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CallScreen extends StatefulWidget {
   final String calleeId;
@@ -25,6 +26,14 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
+  bool _isValidHttpUrl(String? url) {
+    if (url == null) return false;
+    final s = url.trim();
+    if (s.isEmpty) return false;
+    final uri = Uri.tryParse(s);
+    if (uri == null) return false;
+    return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
   @override
   void initState() {
     super.initState();
@@ -35,8 +44,10 @@ class _CallScreenState extends State<CallScreen> {
 
   Future<void> _startCall() async {
     final callProvider = Provider.of<CallProvider>(context, listen: false);
+    final prefs = await SharedPreferences.getInstance();
+    final callerId = prefs.getString('userId') ?? '';
     final success = await callProvider.startCall(
-      callerId: 'current_user_id', // Get from SharedPreferences
+      callerId: callerId,
       calleeId: widget.calleeId,
       type: widget.callType,
     );
@@ -103,10 +114,10 @@ class _CallScreenState extends State<CallScreen> {
                           // Profile image
                           CircleAvatar(
                             radius: 80.r,
-                            backgroundImage: widget.calleeImage != null
+                            backgroundImage: _isValidHttpUrl(widget.calleeImage)
                                 ? NetworkImage(widget.calleeImage!)
                                 : null,
-                            child: widget.calleeImage == null
+                            child: !_isValidHttpUrl(widget.calleeImage)
                                 ? Icon(Icons.person, size: 80.sp, color: Colors.white)
                                 : null,
                           ),
