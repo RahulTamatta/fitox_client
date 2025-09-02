@@ -84,15 +84,10 @@ class _JoinExpertPageState extends State<JoinExpertPage>
               ),
             ),
             Expanded(
-              child: Row(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.fitness_center,
-                    color: AppTheme.primaryColor,
-                    size: 28.sp,
-                  ),
-                  SizedBox(width: 8.w),
                   Text(
                     "FitTalk",
                     style: GoogleFonts.raleway(
@@ -100,6 +95,17 @@ class _JoinExpertPageState extends State<JoinExpertPage>
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primaryColor,
                     ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "Join FitTalk as Expert",
+                    style: GoogleFonts.raleway(
+                      fontSize: 12.sp,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

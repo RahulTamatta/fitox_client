@@ -51,7 +51,7 @@ class CommunityService {
 
   // Helper to get auth token
   Future<String?> _getToken() async {
-    return await _storage.read(key: 'auth_token');
+    return await _storage.read(key: 'access_token');
   }
 
   // Create a blog

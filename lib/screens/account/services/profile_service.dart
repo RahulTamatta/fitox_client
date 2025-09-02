@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Enum to represent API response states
 enum ResponseState { initial, loading, success, error }
@@ -29,16 +29,16 @@ class ProfileService {
   static const Duration _timeoutDuration = Duration(seconds: 30);
   static const int _maxRetries = 2;
 
-  // Helper method to get auth token from SharedPreferences
+  // Helper method to get auth token from secure storage
   Future<String?> _getAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
+    const storage = FlutterSecureStorage();
+    return await storage.read(key: 'access_token');
   }
 
-  // Helper method to save auth token to SharedPreferences
+  // Helper method to save auth token to secure storage
   Future<void> _saveAuthToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'access_token', value: token);
   }
 
   // Helper method to make HTTP requests with retry logic

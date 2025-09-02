@@ -8,10 +8,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../themes/app_theme.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
-
 import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({super.key});
@@ -54,16 +53,16 @@ class _CommunityScreenState extends State<CommunityScreen>
   void initState() {
     super.initState();
     _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
-      duration: const Duration(milliseconds: 600),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
 
-    _fetchBlogs();
     _loadUserData();
+    _fetchBlogs();
 
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
@@ -76,24 +75,22 @@ class _CommunityScreenState extends State<CommunityScreen>
 
   Future<void> _loadUserData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('userId');
-      final userRole = prefs.getString('userRole');
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       
-      if (kDebugMode) {
-        debugPrint('Loading user data - userId: $userId, role: $userRole');
-      }
-      
-      if (userId != null && userId.isNotEmpty) {
+      if (authProvider.isAuthenticated && authProvider.user != null) {
+        final user = authProvider.user!;
         setState(() {
-          _userId = userId;
-          _role = userRole ?? 'user';
+          _userId = user['_id'] ?? user['id'];
+          _role = user['role'] ?? 'user';
         });
+        
+        if (kDebugMode) {
+          debugPrint('Loading user data - userId: $_userId, role: $_role');
+        }
       } else {
         if (kDebugMode) {
-          debugPrint('No userId found in SharedPreferences');
+          debugPrint('User not authenticated or user data not available');
         }
-        // Handle case where user is not logged in
         setState(() {
           _userId = null;
           _role = 'user';
@@ -117,12 +114,14 @@ class _CommunityScreenState extends State<CommunityScreen>
         _page = 1;
       });
     }
+    if (!mounted) return;
     setState(() => _isLoading = true);
     final category = _categories[_selectedCategoryIndex];
     final response = await _communityService.getBlogs(
       category: category == 'All' ? null : category,
       page: _page,
     );
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (response.success && response.data != null) {

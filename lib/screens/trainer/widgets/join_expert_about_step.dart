@@ -227,7 +227,10 @@ class JoinExpertAboutStep extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: ElevatedButton(
-        onPressed: () => provider.nextStep(),
+        onPressed: () {
+          // Advance to next step in the multi-step flow
+          context.read<JoinExpertProvider>().nextStep();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.primaryColor,
           padding: EdgeInsets.symmetric(vertical: 16.h),

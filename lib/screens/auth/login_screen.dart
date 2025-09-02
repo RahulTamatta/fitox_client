@@ -1,13 +1,13 @@
-import 'package:fit_talk/screens/auth/services/auth_service.dart';
 import 'package:fit_talk/screens/auth/signup_screen.dart';
-import 'package:fit_talk/screens/navigator/bottom_navigator_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import '../../themes/app_theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../screens/navigator/bottom_navigator_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,11 +22,9 @@ class _LoginScreenState extends State<LoginScreen>
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
-  bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -55,87 +53,35 @@ class _LoginScreenState extends State<LoginScreen>
     _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _authService.dispose();
     super.dispose();
   }
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-
-      final response = await _authService.login(
+      final authProvider = context.read<AuthProvider>();
+      
+      final success = await authProvider.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-      setState(() => _isLoading = false);
-
-      if (kDebugMode) {
-        debugPrint(
-          'Login AuthResponse: success=${response.success}, message=${response.message}, data=${response.data != null}',
-        );
-      }
-
-      if (response.success && response.data != null) {
-        // Save user details and token to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-
-        // Access token and user from UserData
-        final token = response.data!.token;
-        final user = response.data!.user;
-
+      if (success && mounted) {
         if (kDebugMode) {
-          debugPrint(':::id ${user.id} and Token $token');
+          debugPrint('🚀 Login successful, navigating to main app');
         }
-
-        if (token.isNotEmpty && user.id.isNotEmpty) {
-          // Save to SharedPreferences
-          await prefs.setString('token', token);
-          await prefs.setString('userId', user.id);
-          await prefs.setString('userName', user.name);
-          await prefs.setString('userEmail', user.email);
-          await prefs.setString('userRole', user.role ?? '');
-          await prefs.setInt('userAge', user.age ?? 0);
-          await prefs.setString('userGender', user.gender ?? '');
-          await prefs.setInt('userUId', user.uId ?? 0);
-
-          // Navigate to BottomNavigatorScreen
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const BottomNavigatorScreen(),
-            ),
-          );
-        } else {
-          if (kDebugMode) {
-            debugPrint('Error: Token or user ID is empty');
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Login failed: Missing token or user ID',
-                style: GoogleFonts.raleway(
-                  fontSize: 14.sp,
-                  color: Colors.white,
-                ),
-              ),
-              backgroundColor: Colors.red.shade400,
-              duration: const Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-        }
-      } else {
+        // Navigate to main app after successful login
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => const BottomNavigatorScreen(),
+          ),
+          (route) => false,
+        );
+      } else if (!success && mounted) {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              response.message.isNotEmpty
-                  ? response.message
-                  : 'Login failed. Please try again.',
+              authProvider.error ?? 'Login failed. Please try again.',
               style: GoogleFonts.raleway(fontSize: 14.sp, color: Colors.white),
             ),
             backgroundColor: Colors.red.shade400,
@@ -372,8 +318,10 @@ class _LoginScreenState extends State<LoginScreen>
                     position: _slideAnimation,
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitForm,
+                      child: Consumer<AuthProvider>(
+                        builder: (context, authProvider, child) {
+                          return ElevatedButton(
+                            onPressed: authProvider.isLoading ? null : _submitForm,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
                           padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -383,26 +331,27 @@ class _LoginScreenState extends State<LoginScreen>
                           elevation: 0,
                           shadowColor: AppTheme.primaryColor.withOpacity(0.3),
                         ),
-                        child:
-                            _isLoading
+                            child: authProvider.isLoading
                                 ? SizedBox(
-                                  width: 20.w,
-                                  height: 20.h,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                                    width: 20.w,
+                                    height: 20.h,
+                                    child: const CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    'Log In',
+                                    style: GoogleFonts.raleway(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
                                     ),
                                   ),
-                                )
-                                : Text(
-                                  'Log In',
-                                  style: GoogleFonts.raleway(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                          );
+                        },
                       ),
                     ),
                   ),

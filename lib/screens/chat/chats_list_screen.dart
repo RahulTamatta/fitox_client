@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../providers/auth_provider.dart';
 import '../../themes/app_theme.dart';
 import 'chat_screen.dart';
 
@@ -49,20 +49,23 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   Future<void> _fetchUserIdAndChats() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _userId = prefs.getString('userId');
-      if (kDebugMode) {
-        debugPrint('Retrieved userId from SharedPreferences: $_userId');
-      }
-
-      if (_userId != null && _userId!.isNotEmpty) {
-        final chatProvider = Provider.of<ChatProvider>(context, listen: false);
-        await chatProvider.loadUserChats(_userId!);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      if (authProvider.isAuthenticated && authProvider.user != null) {
+        _userId = authProvider.user!['_id'] ?? authProvider.user!['id'];
         if (kDebugMode) {
-          debugPrint('User Chats loaded');
+          debugPrint('Retrieved userId from AuthProvider: $_userId');
+        }
+
+        if (_userId != null && _userId!.isNotEmpty) {
+          final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+          await chatProvider.loadUserChats(_userId!);
+          if (kDebugMode) {
+            debugPrint('User Chats loaded');
+          }
         }
       } else {
-        debugPrint('Error: userId not found in SharedPreferences');
+        debugPrint('Error: User not authenticated or user data not available');
       }
     } catch (e) {
       debugPrint('Error fetching userId or chats: $e');

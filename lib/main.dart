@@ -2,10 +2,12 @@ import 'package:fit_talk/screens/account/provider/profile_provider.dart';
 import 'package:fit_talk/screens/chat/services/chat_provider.dart';
 import 'package:fit_talk/screens/home/provider/home_provider.dart';
 import 'package:fit_talk/screens/home/services/home_services.dart';
-import 'package:fit_talk/screens/onboard/splash_screen.dart';
 import 'package:fit_talk/themes/app_theme.dart';
 import 'package:fit_talk/providers/chat_provider.dart' as agora_chat;
 import 'package:fit_talk/providers/call_provider.dart';
+import 'package:fit_talk/providers/auth_provider.dart';
+import 'package:fit_talk/widgets/auth_wrapper.dart';
+import 'package:fit_talk/widgets/session_expiry_handler.dart';
 // import 'package:fit_talk/providers/subscription_provider.dart'; // Commented out for testing
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,6 +47,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => HomeProvider(HomeServices())),
@@ -62,10 +65,34 @@ class MyApp extends StatelessWidget {
             title: 'Fit Talk',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
-            home: SplashScreen(),
+            home: const AppInitializer(),
           );
         },
       ),
+    );
+  }
+}
+
+class AppInitializer extends StatefulWidget {
+  const AppInitializer({super.key});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().initialize();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const SessionExpiryHandler(
+      child: AuthWrapper(),
     );
   }
 }

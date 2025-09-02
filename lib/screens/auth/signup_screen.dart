@@ -1,13 +1,16 @@
-import 'package:fit_talk/screens/auth/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 
 import '../../global/app_permission_handler.dart';
 import '../../themes/app_theme.dart';
+import '../../providers/auth_provider.dart';
+import '../navigator/bottom_navigator_screen.dart';
 import 'login_screen.dart';
 import 'package:fit_talk/screens/trainer/join_expert_page.dart';
 
@@ -38,7 +41,6 @@ class _SignupScreenState extends State<SignupScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -105,45 +107,48 @@ class _SignupScreenState extends State<SignupScreen>
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      final response = await _authService.register(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        phone: _phoneController.text.trim(),
-        city: _cityController.text.trim(),
-        gender: _gender!,
-        profileImage: _profileImage,
-        isTrainer: _isTrainer,
-        charges: _isTrainer ? _chargesController.text.trim() : null,
-        experience: _isTrainer ? _experienceController.text.trim() : null,
-        currentOccupation: _isTrainer ? 'Trainer' : null, // Default value
-        availableTimings: _isTrainer ? ['9AM-5PM'] : null, // Default value
-        tagline:
-            _isTrainer ? 'Empowering fitness journeys' : null, // Default value
-        interests: ['fitness', 'health'], // Default value
-      );
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      final userData = {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+        'phone': _phoneController.text.trim(),
+        'city': _cityController.text.trim(),
+        'gender': _gender!,
+        'profileImage': _profileImage,
+        'isTrainer': _isTrainer,
+        if (_isTrainer) 'charges': _chargesController.text.trim(),
+        if (_isTrainer) 'experience': _experienceController.text.trim(),
+        if (_isTrainer) 'currentOccupation': 'Trainer',
+        if (_isTrainer) 'availableTimings': ['9AM-5PM'],
+        if (_isTrainer) 'tagline': 'Empowering fitness journeys',
+        'interests': ['fitness', 'health'],
+      };
+      
+      final success = await authProvider.register(userData);
 
       setState(() => _isLoading = false);
 
-      if (response.success && response.data != null) {
-        // Navigate based on selected role
-        if (!_isTrainer) {
-          // User selected → start Join as Expert flow
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const JoinExpertPage()),
-          );
-        } else {
-          // Trainer selected → proceed to login
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
+      if (success && mounted) {
+        if (kDebugMode) {
+          debugPrint('🚀 Registration successful, navigating to main app');
         }
+        
+        // Navigate to main app after successful registration
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => const BottomNavigatorScreen(),
+          ),
+          (route) => false,
+        );
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               _isTrainer
-                  ? 'Registration Successful! Please log in.'
-                  : 'Registration Successful! Complete your expert profile.',
+                  ? 'Registration Successful! Complete your expert profile.'
+                  : 'Registration Successful! Welcome to Fit Talk!',
               style: GoogleFonts.raleway(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -163,7 +168,7 @@ class _SignupScreenState extends State<SignupScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              response.message,
+              authProvider.error ?? 'Registration failed. Please try again.',
               style: GoogleFonts.raleway(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -261,12 +266,12 @@ class _SignupScreenState extends State<SignupScreen>
             text: 'Trainer',
             icon: Icons.fitness_center_rounded,
             onPressed: () {
-              setState(() {
-                _isTrainer = true;
-                _animationController.reset();
-                _showDetailsForm = true;
-                _animationController.forward();
-              });
+              // Navigate directly to expert flow container
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const JoinExpertPage(),
+                ),
+              );
             },
           ),
           SizedBox(height: 24.h),
@@ -361,9 +366,7 @@ class _SignupScreenState extends State<SignupScreen>
           ),
           SizedBox(height: 8.h),
           Text(
-            _isTrainer
-                ? 'Set up your trainer profile'
-                : 'Set up your user profile',
+            _isTrainer ? 'Set up your trainer profile' : 'Set up your profile',
             style: GoogleFonts.raleway(
               fontSize: 14.sp,
               color: Colors.grey.shade600,
@@ -811,7 +814,6 @@ class _SignupScreenState extends State<SignupScreen>
     _chargesController.dispose();
     _experienceController.dispose();
     _passwordController.dispose();
-    _authService.dispose();
     super.dispose();
   }
 }

@@ -29,25 +29,24 @@ class JoinExpertService {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$_baseUrl/user/register'),
+        Uri.parse('$_baseUrl/api/user/expert/apply'),
       );
 
-      // Add form fields
+      // Add form fields aligned to backend
       final fields = {
         'name': fullName,
         'email': email,
         'password': password,
-        'bio': contactNumber, // Using bio field for phone as per existing pattern
+        'phoneNumber': contactNumber,
         'age': age.toString(),
         'gender': gender,
         'city': 'India', // Default city
         'role': 'trainer',
-        'experience': yearsOfExperience.toString(),
-        'charges': feePerHour.toString(),
+        'yearsOfExperience': yearsOfExperience.toString(),
+        'feePerHour': feePerHour.toString(),
         'currentOccupation': 'Fitness Trainer',
         'availableTimings': '9AM-9PM', // Default timing
         'tagline': 'Empowering fitness journeys',
-        'interests': 'fitness,health,wellness',
         'languages': languages.join(','),
         'specializations': specializations.join(','),
       };

@@ -1,15 +1,16 @@
 import 'package:fit_talk/screens/account/provider/profile_provider.dart';
 import 'package:fit_talk/screens/account/services/profile_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../themes/app_theme.dart';
-import '../auth/login_screen.dart'; // Adjust import based on your project
+import '../../providers/auth_provider.dart';
+import '../auth/login_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -22,12 +23,18 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch profile data when the screen loads using userId from SharedPreferences
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('userId');
-      if (userId == null || userId.isEmpty) {
-        // If no userId is present, force user to login
+    // Fetch profile data when the screen loads using AuthProvider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      if (kDebugMode) {
+        debugPrint('📱 AccountScreen init - Auth state: ${authProvider.state.name}');
+      }
+      
+      if (authProvider.state != AuthState.authenticated || authProvider.user == null) {
+        if (kDebugMode) {
+          debugPrint('❌ AccountScreen: User not authenticated, redirecting to login');
+        }
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -35,6 +42,12 @@ class _AccountScreenState extends State<AccountScreen> {
         );
         return;
       }
+      
+      final userId = authProvider.user!['_id'];
+      if (kDebugMode) {
+        debugPrint('👤 AccountScreen: Loading profile for userId: $userId');
+      }
+      
       Provider.of<ProfileProvider>(
         context,
         listen: false,
@@ -65,10 +78,10 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   SizedBox(height: 16.h),
                   ElevatedButton(
-                    onPressed: () async {
-                      final prefs = await SharedPreferences.getInstance();
-                      final userId = prefs.getString('userId');
-                      if (userId == null || userId.isEmpty) {
+                    onPressed: () {
+                      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      
+                      if (authProvider.state != AuthState.authenticated || authProvider.user == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
@@ -85,6 +98,8 @@ class _AccountScreenState extends State<AccountScreen> {
                         );
                         return;
                       }
+                      
+                      final userId = authProvider.user!['_id'];
                       Provider.of<ProfileProvider>(
                         context,
                         listen: false,
@@ -525,10 +540,10 @@ class _AccountScreenState extends State<AccountScreen> {
         "icon": Symbols.logout_rounded,
         "title": "Log Out",
         "action": () async {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.remove('token');
-          await prefs.remove('userId');
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          await authProvider.logout();
           Provider.of<ProfileProvider>(context, listen: false).reset();
+          if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -662,10 +677,10 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               TextButton(
                 onPressed: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove('token');
-                  await prefs.remove('userId');
+                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                  await authProvider.logout();
                   Provider.of<ProfileProvider>(context, listen: false).reset();
+                  if (!mounted) return;
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(

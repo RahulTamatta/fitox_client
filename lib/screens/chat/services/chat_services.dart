@@ -1,12 +1,19 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class ChatService {
   static const String _baseUrl = 'http://10.0.2.2:5001/chat';
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
   final http.Client _client;
 
   ChatService({http.Client? client}) : _client = client ?? http.Client();
+
+  // Helper to get auth token
+  Future<String?> _getToken() async {
+    return await _storage.read(key: 'access_token');
+  }
 
   /// Initiates a chat between a user and a trainer
   Future<Map<String, dynamic>> initiateChat({
@@ -14,9 +21,13 @@ class ChatService {
     required String trainerId,
   }) async {
     try {
+      final token = await _getToken();
       final response = await _client.post(
         Uri.parse('$_baseUrl/initiate'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'userId': userId, 'trainerId': trainerId}),
       );
 
@@ -43,9 +54,13 @@ class ChatService {
     required String message,
   }) async {
     try {
+      final token = await _getToken();
       final response = await _client.post(
         Uri.parse('$_baseUrl/message/$chatId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'userId': userId, 'message': message}),
       );
 
@@ -68,9 +83,13 @@ class ChatService {
   /// Fetches all messages from a given chat
   Future<List<dynamic>> getMessages({required String chatId}) async {
     try {
+      final token = await _getToken();
       final response = await _client.get(
         Uri.parse('$_baseUrl/$chatId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -93,9 +112,13 @@ class ChatService {
   Future<List<dynamic>> getUserChats({required String userId}) async {
     try {
       print("::: USER ID $userId");
+      final token = await _getToken();
       final response = await _client.post(
         Uri.parse('$_baseUrl/user'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'userId': userId}),
       );
 
