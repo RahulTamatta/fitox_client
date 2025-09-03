@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'auth_service.dart';
 
 class SubscriptionService {
-  static const String _baseUrl = 'http://10.0.2.2:5001/agora';
+  static const String _baseUrl = 'https://fitox-server.onrender.com/api/agora';
   static Map<String, dynamic>? _cachedStatus;
   static DateTime? _lastCacheTime;
   static const Duration _cacheValidDuration = Duration(minutes: 5);
@@ -18,11 +18,15 @@ class SubscriptionService {
       }
 
       // Fetch from backend
+      print('🔍 [SubscriptionService] GET active status for user: $userId');
       final response = await http.get(
         Uri.parse('$_baseUrl/subscription/status?userId=$userId'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print(
+        '📡 [SubscriptionService] Status resp: ${response.statusCode} ${response.body}',
+      );
       if (response.statusCode == 200) {
         _cachedStatus = jsonDecode(response.body);
         _lastCacheTime = DateTime.now();
@@ -46,11 +50,15 @@ class SubscriptionService {
         return _cachedStatus;
       }
 
+      print('🔍 [SubscriptionService] GET status for user: $userId');
       final response = await http.get(
         Uri.parse('$_baseUrl/subscription/status?userId=$userId'),
         headers: {'Content-Type': 'application/json'},
       );
 
+      print(
+        '📡 [SubscriptionService] Status resp: ${response.statusCode} ${response.body}',
+      );
       if (response.statusCode == 200) {
         _cachedStatus = jsonDecode(response.body);
         _lastCacheTime = DateTime.now();
@@ -68,12 +76,18 @@ class SubscriptionService {
     required String action, // 'call' or 'chat'
   }) async {
     try {
+      print(
+        '🔍 [SubscriptionService] POST validate action=$action for user: $userId',
+      );
       final response = await http.post(
         Uri.parse('$_baseUrl/subscription/validate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'userId': userId, 'action': action}),
       );
 
+      print(
+        '📡 [SubscriptionService] Validate resp: ${response.statusCode} ${response.body}',
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['allowed'] ?? false;
@@ -91,7 +105,9 @@ class SubscriptionService {
   }
 
   static Future<String?> getCurrentUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('userId');
+    final auth = AuthService();
+    final user = await auth.getCurrentUser();
+    final id = (user?['_id'] ?? user?['id']);
+    return id?.toString();
   }
 }

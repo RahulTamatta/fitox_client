@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 typedef CallEventHandler = void Function(Map<String, dynamic> data);
@@ -21,8 +20,8 @@ class CallSignalingService {
       return;
     }
     _currentUserId = userId;
-    final url =
-        Platform.isAndroid ? 'http://10.0.2.2:5001' : 'http://localhost:5001';
+    // Use production server for all platforms; localhost is not reachable on devices
+    final url = 'https://fitox-server.onrender.com';
 
     _socket = IO.io(url, <String, dynamic>{
       'transports': ['websocket'],
@@ -32,6 +31,33 @@ class CallSignalingService {
     _socket!.on('connect', (_) {
       // Support both 'join' and 'register' server-side
       _socket!.emit('join', userId);
+    });
+
+    // Error and state handlers for better diagnostics and state awareness
+    _socket!.on('connect_error', (e) {
+      try {
+        // No external state here; providers can add custom handlers if needed
+        // ignore: avoid_print
+        print('[CallSignalingService] connect_error: $e');
+      } catch (_) {}
+    });
+    _socket!.on('connect_timeout', (_) {
+      try {
+        // ignore: avoid_print
+        print('[CallSignalingService] connect_timeout');
+      } catch (_) {}
+    });
+    _socket!.on('error', (e) {
+      try {
+        // ignore: avoid_print
+        print('[CallSignalingService] error: $e');
+      } catch (_) {}
+    });
+    _socket!.on('disconnect', (reason) {
+      try {
+        // ignore: avoid_print
+        print('[CallSignalingService] disconnect: $reason');
+      } catch (_) {}
     });
 
     _socket!.on('call:incoming', (data) {

@@ -8,7 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fit_talk/services/auth_service.dart';
 import '../../themes/app_theme.dart';
 import '../../video services/video_call_screen.dart';
 import '../chat/chat_screen.dart';
@@ -36,9 +36,10 @@ class _TrainerDetailsScreenState extends State<TrainerDetailsScreen> {
   }
 
   Future<void> _loadCurrentUserId() async {
-    final prefs = await SharedPreferences.getInstance();
+    final auth = AuthService();
+    final user = await auth.getCurrentUser();
     setState(() {
-      _currentUserId = prefs.getString('userId');
+      _currentUserId = (user?['_id'] ?? user?['id'])?.toString();
     });
   }
 

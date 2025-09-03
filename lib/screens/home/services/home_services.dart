@@ -114,7 +114,7 @@ class Professional {
 // Service class
 class HomeServices {
   //https//192.168.0.104:5001/api
-  static const String _baseUrl = 'http://10.0.2.2:5001';
+  static const String _baseUrl = 'https://fitox-server.onrender.com';
   static const String _verifiedProfessionalsEndpoint =
       '/api/user/verified-trainers';
 
@@ -136,10 +136,16 @@ class HomeServices {
   ) async {
     try {
       final String typeString = _getTypeString(type);
+      // Only include trainerType in payload for non-trainer categories.
+      final Map<String, dynamic> payload =
+          type == ProfessionalType.trainer ? {} : {'trainerType': typeString};
+      if (kDebugMode) {
+        print('Fetching $type with payload: ' + payload.toString());
+      }
       final response = await http.post(
         Uri.parse('$_baseUrl$_verifiedProfessionalsEndpoint'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'trainerType': typeString}),
+        body: jsonEncode(payload),
       );
 
       switch (response.statusCode) {

@@ -7,6 +7,7 @@ import 'dart:async';
 import '../services/call_signaling_service.dart';
 
 enum CallState { idle, connecting, ringing, connected, reconnecting, ended }
+
 enum CallType { audio, video }
 
 class CallProvider with ChangeNotifier {
@@ -24,6 +25,10 @@ class CallProvider with ChangeNotifier {
   String? _callerId;
   String? _calleeId;
   String? _selfId;
+  // Store last incoming invite metadata for UI to consume
+  String? _incomingFromId;
+  String? _incomingChannelName;
+  bool _incomingInitDone = false;
 
   CallState get callState => _callState;
   CallType get callType => _callType;
@@ -35,6 +40,8 @@ class CallProvider with ChangeNotifier {
   String? get channelName => _channelName;
   String? get error => _error;
   bool get isConnected => _isConnected;
+  String? get incomingFromId => _incomingFromId;
+  String? get incomingChannelName => _incomingChannelName;
 
   Future<bool> startCall({
     required String callerId,
@@ -42,15 +49,20 @@ class CallProvider with ChangeNotifier {
     required CallType type,
   }) async {
     try {
+      print(
+        ' [CallProvider] startCall => callerId=$callerId calleeId=$calleeId type=$type',
+      );
       // Check subscription
       final canCall = await SubscriptionService.validateAction(
         userId: callerId,
         action: 'call',
       );
 
+      print(' [CallProvider] validateAction(call) => $canCall');
       if (!canCall) {
         _error = 'Subscription required for calls';
         notifyListeners();
+        print(' [CallProvider] Subscription not allowed, aborting call');
         return false;
       }
 
@@ -59,14 +71,21 @@ class CallProvider with ChangeNotifier {
       _callerId = callerId;
       _calleeId = calleeId;
       _selfId = callerId;
-      _channelName = 'call_${callerId}_${calleeId}_${DateTime.now().millisecondsSinceEpoch}';
+      _channelName = _generateChannelName(callerId, calleeId);
       notifyListeners();
+      print(
+        '  [CallProvider] Initializing RTC and signaling. channelName=$_channelName (len=${_channelName!.length})',
+      );
 
       // Initialize RTC service
-      await AgoraRtcService.initialize();
+      final rtcInitOk = await AgoraRtcService.initialize();
+      print('  [CallProvider] AgoraRtcService.initialize => $rtcInitOk');
       // Initialize signaling service
       await CallSignalingService.init(callerId);
-      
+      print(
+        ' [CallProvider] CallSignalingService.init done (connected=${CallSignalingService.isConnected})',
+      );
+
       // Set up callbacks
       AgoraRtcService.onUserJoined = _handleUserJoined;
       AgoraRtcService.onUserOffline = _handleUserOffline;
@@ -76,6 +95,7 @@ class CallProvider with ChangeNotifier {
 
       // Start connectivity monitoring
       _startConnectivityMonitoring();
+      print(' [CallProvider] Connectivity monitoring started');
 
       // Join channel
       final success = await AgoraRtcService.joinChannel(
@@ -84,10 +104,12 @@ class CallProvider with ChangeNotifier {
         isVideoCall: type == CallType.video,
       );
 
+      print(' [CallProvider] joinChannel => $success');
       if (success) {
         _callState = CallState.ringing;
         _isCameraOn = type == CallType.video;
         notifyListeners();
+        print(' [CallProvider] Sending call invite to $calleeId');
         // Send call invite via signaling
         CallSignalingService.invite(
           from: callerId,
@@ -97,28 +119,38 @@ class CallProvider with ChangeNotifier {
         );
         // Listen for responses
         _bindSignalingHandlers();
+        print(' [CallProvider] Signaling handlers bound');
         return true;
       } else {
         _callState = CallState.ended;
         _error = 'Failed to join call';
         notifyListeners();
+        print(' [CallProvider] Failed to join channel. Error=$_error');
         return false;
       }
     } catch (e) {
       _error = 'Failed to start call: $e';
       _callState = CallState.ended;
       notifyListeners();
+      print(' [CallProvider] Exception in startCall: $e');
       return false;
     }
   }
 
   Future<void> endCall() async {
     try {
+      print(' [CallProvider] endCall');
       await AgoraRtcService.leaveChannel();
       // Notify peer
-      if (_callerId != null && _calleeId != null && _channelName != null && _selfId != null) {
+      if (_callerId != null &&
+          _calleeId != null &&
+          _channelName != null &&
+          _selfId != null) {
         final me = _selfId!;
         final other = me == _callerId ? _calleeId! : _callerId!;
+        print(
+          ' [CallProvider] Notifying peer end: from=$me to=$other channelName=$_channelName',
+        );
         CallSignalingService.end(
           from: me,
           to: other,
@@ -131,12 +163,45 @@ class CallProvider with ChangeNotifier {
       _channelName = null;
       _connectivitySubscription?.cancel();
       notifyListeners();
+      print(' [CallProvider] Call state reset');
     } catch (e) {
       print('Failed to end call: $e');
     }
   }
 
   // Incoming call actions (to be used by IncomingCallScreen)
+  // Listen for incoming calls globally (call once after login)
+  Future<void> listenForIncomingCalls(String currentUserId) async {
+    if (_incomingInitDone) return;
+    try {
+      await CallSignalingService.init(currentUserId);
+      // Bind only once
+      CallSignalingService.onIncoming = (data) {
+        try {
+          final from = (data['from'] ?? '').toString();
+          final ch = (data['channelName'] ?? '').toString();
+          final typeStr = (data['callType'] ?? 'video').toString();
+          final t = typeStr == 'audio' ? CallType.audio : CallType.video;
+          _incomingFromId = from;
+          _incomingChannelName = ch;
+          _callType = t;
+          _callerId = from;
+          _calleeId = currentUserId;
+          _selfId = currentUserId;
+          _channelName = ch;
+          _callState = CallState.ringing;
+          notifyListeners();
+        } catch (_) {}
+      };
+      // Also keep other signaling handlers ready (timeout/cancel, etc.)
+      _bindSignalingHandlers();
+      _incomingInitDone = true;
+    } catch (e) {
+      _error = 'Failed to init incoming calls: $e';
+      notifyListeners();
+    }
+  }
+
   Future<void> acceptIncomingCall({
     required String currentUserId,
     required String otherUserId,
@@ -162,7 +227,8 @@ class CallProvider with ChangeNotifier {
         isVideoCall: type == CallType.video,
       );
       if (success) {
-        _callState = CallState.connected; // will become connected when remote joins
+        _callState =
+            CallState.connected; // will become connected when remote joins
         _isCameraOn = type == CallType.video;
         notifyListeners();
         // Notify caller
@@ -252,7 +318,7 @@ class CallProvider with ChangeNotifier {
     if (uid == _remoteUid) {
       _isRemoteUserJoined = false;
       _remoteUid = null;
-      
+
       if (reason == UserOfflineReasonType.userOfflineQuit) {
         _callState = CallState.ended;
       }
@@ -260,7 +326,10 @@ class CallProvider with ChangeNotifier {
     }
   }
 
-  void _handleConnectionStateChanged(ConnectionStateType state, ConnectionChangedReasonType reason) {
+  void _handleConnectionStateChanged(
+    ConnectionStateType state,
+    ConnectionChangedReasonType reason,
+  ) {
     switch (state) {
       case ConnectionStateType.connectionStateConnecting:
         _callState = CallState.connecting;
@@ -295,7 +364,9 @@ class CallProvider with ChangeNotifier {
   }
 
   void _startConnectivityMonitoring() {
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((result) {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      result,
+    ) {
       _isConnected = result != ConnectivityResult.none;
       notifyListeners();
     });
@@ -304,8 +375,10 @@ class CallProvider with ChangeNotifier {
   void _bindSignalingHandlers() {
     CallSignalingService.onAccepted = (data) {
       // Peer accepted; if we are ringing, move to connecting/connected
-      if (_callState == CallState.ringing || _callState == CallState.connecting) {
-        _callState = _isRemoteUserJoined ? CallState.connected : CallState.connecting;
+      if (_callState == CallState.ringing ||
+          _callState == CallState.connecting) {
+        _callState =
+            _isRemoteUserJoined ? CallState.connected : CallState.connecting;
         notifyListeners();
       }
     };
@@ -359,5 +432,22 @@ class CallProvider with ChangeNotifier {
     _connectivitySubscription?.cancel();
     endCall();
     super.dispose();
+  }
+
+  // Generate a short, Agora-compliant channel name (<= 64 chars, [A-Za-z0-9_])
+  String _generateChannelName(String callerId, String calleeId) {
+    // Use base36 timestamp and short prefixes of IDs to keep it compact and readable.
+    final ts = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
+    String safe(String s) {
+      // Restrict to alphanumeric and underscore; replace others with underscore
+      final filtered = s.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_');
+      return filtered.length > 8 ? filtered.substring(0, 8) : filtered;
+    }
+
+    final c1 = safe(callerId);
+    final c2 = safe(calleeId);
+    final name = 'c_${ts}_${c1}_${c2}';
+    // Ensure final length <= 64 (highly likely already). If longer, trim end.
+    return name.length <= 64 ? name : name.substring(0, 64);
   }
 }

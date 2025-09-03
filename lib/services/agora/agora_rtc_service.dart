@@ -14,7 +14,11 @@ class AgoraRtcService {
   // Callbacks
   static Function(int uid, int elapsed)? onUserJoined;
   static Function(int uid, UserOfflineReasonType reason)? onUserOffline;
-  static Function(ConnectionStateType state, ConnectionChangedReasonType reason)? onConnectionStateChanged;
+  static Function(
+    ConnectionStateType state,
+    ConnectionChangedReasonType reason,
+  )?
+  onConnectionStateChanged;
   static Function()? onTokenPrivilegeWillExpire;
   static Function(ErrorCodeType err)? onError;
 
@@ -32,11 +36,19 @@ class AgoraRtcService {
             print('User joined: $remoteUid');
             onUserJoined?.call(remoteUid, elapsed);
           },
-          onUserOffline: (RtcConnection connection, int remoteUid, UserOfflineReasonType reason) {
+          onUserOffline: (
+            RtcConnection connection,
+            int remoteUid,
+            UserOfflineReasonType reason,
+          ) {
             print('User offline: $remoteUid');
             onUserOffline?.call(remoteUid, reason);
           },
-          onConnectionStateChanged: (RtcConnection connection, ConnectionStateType state, ConnectionChangedReasonType reason) {
+          onConnectionStateChanged: (
+            RtcConnection connection,
+            ConnectionStateType state,
+            ConnectionChangedReasonType reason,
+          ) {
             print('Connection state changed: $state, reason: $reason');
             onConnectionStateChanged?.call(state, reason);
           },
@@ -62,8 +74,10 @@ class AgoraRtcService {
   static Future<bool> requestPermissions() async {
     final permissions = [Permission.camera, Permission.microphone];
     final statuses = await permissions.request();
-    
-    return statuses.values.every((status) => status == PermissionStatus.granted);
+
+    return statuses.values.every(
+      (status) => status == PermissionStatus.granted,
+    );
   }
 
   static Future<bool> joinChannel({
@@ -77,11 +91,23 @@ class AgoraRtcService {
         return false;
       }
 
-      final uid = int.tryParse(userId) ?? DateTime.now().millisecondsSinceEpoch;
-      
+      // Sanitize and validate channel name per Agora limits
+      final sanitized = _sanitizeChannelName(channelName);
+      if (sanitized.isEmpty) {
+        print('Invalid channel name after sanitization');
+        return false;
+      }
+      if (sanitized.length > 64) {
+        print('Channel name too long (>64) even after sanitization');
+        return false;
+      }
+
+      // Derive a valid 32-bit unsigned UID deterministically from userId
+      final uid = _uidFromUserId(userId);
+
       // Get RTC token from backend
       final tokenData = await AgoraTokenService.getRtcToken(
-        channelName: channelName,
+        channelName: sanitized,
         uid: uid,
         role: 'publisher',
       );
@@ -92,15 +118,17 @@ class AgoraRtcService {
       }
 
       _currentToken = tokenData['token'];
-      _currentChannel = channelName;
+      _currentChannel = sanitized;
       _currentUid = uid;
 
       // Initialize engine with app ID if not already
       if (!_engineInitialized) {
-        await _engine!.initialize(RtcEngineContext(
-          appId: tokenData['appId'],
-          channelProfile: ChannelProfileType.channelProfileCommunication,
-        ));
+        await _engine!.initialize(
+          RtcEngineContext(
+            appId: tokenData['appId'],
+            channelProfile: ChannelProfileType.channelProfileCommunication,
+          ),
+        );
         await _engine!.enableAudio();
         // Route audio to speakerphone by default for better UX
         await _engine!.setDefaultAudioRouteToSpeakerphone(true);
@@ -126,7 +154,7 @@ class AgoraRtcService {
 
       await _engine!.joinChannel(
         token: _currentToken!,
-        channelId: channelName,
+        channelId: sanitized,
         uid: uid,
         options: options,
       );
@@ -152,7 +180,7 @@ class AgoraRtcService {
   }
 
   static bool _isMuted = false;
-  
+
   static Future<void> toggleMute() async {
     try {
       if (_engine == null) throw 'Engine not initialized';
@@ -164,7 +192,7 @@ class AgoraRtcService {
   }
 
   static bool _isCameraOff = false;
-  
+
   static Future<void> toggleCamera() async {
     try {
       if (_engine == null) throw 'Engine not initialized';
@@ -241,4 +269,29 @@ class AgoraRtcService {
 
   static bool get isJoined => _isJoined;
   static RtcEngine? get engine => _engine;
+
+  // Ensure channel name uses only [A-Za-z0-9_], replace others with '_', and hard-cap to 64 chars
+  static String _sanitizeChannelName(String name) {
+    if (name.isEmpty) return '';
+    final filtered = name.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_');
+    return filtered.length <= 64 ? filtered : filtered.substring(0, 64);
+  }
+
+  // Deterministically derive a 32-bit unsigned UID from a string userId
+  static int _uidFromUserId(String userId) {
+    final parsed = int.tryParse(userId);
+    if (parsed != null && parsed >= 0 && parsed <= 0xFFFFFFFF) {
+      return parsed;
+    }
+    // FNV-1a 32-bit hash
+    const int fnvOffset = 0x811C9DC5;
+    const int fnvPrime = 0x01000193;
+    int hash = fnvOffset;
+    for (final c in userId.codeUnits) {
+      hash ^= c;
+      hash = (hash * fnvPrime) & 0xFFFFFFFF;
+    }
+    // Ensure non-negative in Dart int representation
+    return hash & 0xFFFFFFFF;
+  }
 }

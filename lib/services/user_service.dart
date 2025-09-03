@@ -1,29 +1,21 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_info.dart';
+import 'auth_service.dart';
 
 class UserService {
+  // Base URL without trailing /api; endpoints below include '/api/...'
   static String get baseUrl =>
-      Platform.isAndroid ? 'http://10.0.2.2:5001' : 'http://localhost:5001/api';
+      Platform.isAndroid
+          ? 'https://fitox-server.onrender.com'
+          : 'http://localhost:5001';
 
   static Future<UserInfo?> getUserInfo(String userId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      if (token == null) {
-        print('No auth token found');
-        return null;
-      }
-
-      final response = await http.get(
-        Uri.parse('${baseUrl}/users/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      final auth = AuthService();
+      final response = await auth.authenticatedRequest(
+        'GET',
+        '/api/users/$userId',
       );
 
       if (response.statusCode == 200) {
@@ -41,17 +33,10 @@ class UserService {
 
   static Future<List<UserInfo>> searchUsers(String query) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      if (token == null) return [];
-
-      final response = await http.get(
-        Uri.parse('${baseUrl}/users/search?q=$query'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+      final auth = AuthService();
+      final response = await auth.authenticatedRequest(
+        'GET',
+        '/api/users/search?q=$query',
       );
 
       if (response.statusCode == 200) {

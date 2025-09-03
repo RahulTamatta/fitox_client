@@ -8,7 +8,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import '../../account/services/profile_service.dart';
 
 class JoinExpertService {
-  static const String _baseUrl = 'http://10.0.2.2:5001';
+  static const String _baseUrl = 'https://fitox-server.onrender.com';
   static const Duration _timeoutDuration = Duration(seconds: 60);
   final http.Client _client = http.Client();
 
@@ -59,7 +59,7 @@ class JoinExpertService {
       for (int i = 0; i < profileImages.length; i++) {
         final image = profileImages[i];
         final compressedImage = await _compressImage(image);
-        
+
         if (compressedImage != null) {
           final mimeType = lookupMimeType(image.path) ?? 'image/jpeg';
           request.files.add(
@@ -78,7 +78,7 @@ class JoinExpertService {
         for (int i = 0; i < certificationImages.length; i++) {
           final image = certificationImages[i];
           final compressedImage = await _compressImage(image);
-          
+
           if (compressedImage != null) {
             final mimeType = lookupMimeType(image.path) ?? 'image/jpeg';
             request.files.add(
@@ -103,7 +103,9 @@ class JoinExpertService {
       final responseBody = await response.stream.bytesToString();
 
       if (kDebugMode) {
-        debugPrint('Expert application response status: ${response.statusCode}');
+        debugPrint(
+          'Expert application response status: ${response.statusCode}',
+        );
         debugPrint('Expert application response body: $responseBody');
       }
 

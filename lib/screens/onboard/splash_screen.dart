@@ -4,7 +4,7 @@ import 'package:fit_talk/screens/onboard/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fit_talk/services/auth_service.dart';
 import '../../themes/app_theme.dart';
 import '../navigator/bottom_navigator_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -70,9 +70,9 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } catch (_) {}
 
-    // Get SharedPreferences instance
-    final prefs = await SharedPreferences.getInstance();
-    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    // Check login via AuthService (secure tokens)
+    final auth = AuthService();
+    final isLoggedIn = await auth.isLoggedIn();
 
     // Navigate based on login status
     if (isLoggedIn) {

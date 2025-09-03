@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/call_provider.dart';
 import '../../themes/app_theme.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fit_talk/services/auth_service.dart';
 
 class CallScreen extends StatefulWidget {
   final String calleeId;
@@ -26,6 +26,7 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
+  CallProvider? _callProvider;
   bool _isValidHttpUrl(String? url) {
     if (url == null) return false;
     final s = url.trim();
@@ -34,18 +35,22 @@ class _CallScreenState extends State<CallScreen> {
     if (uri == null) return false;
     return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https');
   }
+
   @override
   void initState() {
     super.initState();
+    _callProvider = context.read<CallProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startCall();
     });
   }
 
   Future<void> _startCall() async {
-    final callProvider = Provider.of<CallProvider>(context, listen: false);
-    final prefs = await SharedPreferences.getInstance();
-    final callerId = prefs.getString('userId') ?? '';
+    final callProvider = _callProvider ?? context.read<CallProvider>();
+    final auth = AuthService();
+    final user = await auth.getCurrentUser();
+    final callerId = ((user?['_id'] ?? user?['id'])?.toString()) ?? '';
+    print('📞 [CallScreen] _startCall callerId=$callerId calleeId=${widget.calleeId} type=${widget.callType}');
     final success = await callProvider.startCall(
       callerId: callerId,
       calleeId: widget.calleeId,
@@ -53,6 +58,7 @@ class _CallScreenState extends State<CallScreen> {
     );
 
     if (!success) {
+      print('❌ [CallScreen] startCall returned false. error=${callProvider.error}. Popping to previous screen');
       Navigator.pop(context);
     }
   }
@@ -73,7 +79,7 @@ class _CallScreenState extends State<CallScreen> {
                     Positioned.fill(
                       child: callProvider.getRemoteVideoView() ?? Container(),
                     ),
-                  
+
                   // Local video (small overlay)
                   if (callProvider.isCameraOn)
                     Positioned(
@@ -88,14 +94,16 @@ class _CallScreenState extends State<CallScreen> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10.r),
-                          child: callProvider.getLocalVideoView() ?? Container(),
+                          child:
+                              callProvider.getLocalVideoView() ?? Container(),
                         ),
                       ),
                     ),
                 ],
 
                 // Audio call UI
-                if (widget.callType == CallType.audio || !callProvider.isRemoteUserJoined)
+                if (widget.callType == CallType.audio ||
+                    !callProvider.isRemoteUserJoined)
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
@@ -114,15 +122,21 @@ class _CallScreenState extends State<CallScreen> {
                           // Profile image
                           CircleAvatar(
                             radius: 80.r,
-                            backgroundImage: _isValidHttpUrl(widget.calleeImage)
-                                ? NetworkImage(widget.calleeImage!)
-                                : null,
-                            child: !_isValidHttpUrl(widget.calleeImage)
-                                ? Icon(Icons.person, size: 80.sp, color: Colors.white)
-                                : null,
+                            backgroundImage:
+                                _isValidHttpUrl(widget.calleeImage)
+                                    ? NetworkImage(widget.calleeImage!)
+                                    : null,
+                            child:
+                                !_isValidHttpUrl(widget.calleeImage)
+                                    ? Icon(
+                                      Icons.person,
+                                      size: 80.sp,
+                                      color: Colors.white,
+                                    )
+                                    : null,
                           ),
                           SizedBox(height: 24.h),
-                          
+
                           // Name
                           Text(
                             widget.calleeName,
@@ -133,7 +147,7 @@ class _CallScreenState extends State<CallScreen> {
                             ),
                           ),
                           SizedBox(height: 8.h),
-                          
+
                           // Call status
                           Text(
                             _getCallStatusText(callProvider.callState),
@@ -211,15 +225,22 @@ class _CallScreenState extends State<CallScreen> {
         _buildControlButton(
           icon: callProvider.isMuted ? Symbols.mic_off : Symbols.mic,
           onTap: callProvider.toggleMute,
-          backgroundColor: callProvider.isMuted ? Colors.red : Colors.white.withOpacity(0.2),
+          backgroundColor:
+              callProvider.isMuted ? Colors.red : Colors.white.withOpacity(0.2),
         ),
 
         // Camera button (video calls only)
         if (widget.callType == CallType.video)
           _buildControlButton(
-            icon: callProvider.isCameraOn ? Symbols.videocam : Symbols.videocam_off,
+            icon:
+                callProvider.isCameraOn
+                    ? Symbols.videocam
+                    : Symbols.videocam_off,
             onTap: callProvider.toggleCamera,
-            backgroundColor: callProvider.isCameraOn ? Colors.white.withOpacity(0.2) : Colors.red,
+            backgroundColor:
+                callProvider.isCameraOn
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.red,
           ),
 
         // Switch camera button (video calls only)
@@ -257,11 +278,7 @@ class _CallScreenState extends State<CallScreen> {
           color: backgroundColor,
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 24.sp,
-        ),
+        child: Icon(icon, color: Colors.white, size: 24.sp),
       ),
     );
   }
@@ -285,8 +302,7 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   void dispose() {
-    final callProvider = Provider.of<CallProvider>(context, listen: false);
-    callProvider.endCall();
+    _callProvider?.endCall();
     super.dispose();
   }
 }

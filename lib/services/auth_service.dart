@@ -5,9 +5,9 @@ import 'package:uuid/uuid.dart';
 import 'secure_storage_service.dart';
 
 class AuthService {
-  static const String _baseUrl = 'http://10.0.2.2:5001';
+  static const String _baseUrl = 'https://fitox-server.onrender.com';
   static const Duration _timeoutDuration = Duration(seconds: 30);
-  
+
   final SecureStorageService _storage = SecureStorageService();
   final http.Client _client = http.Client();
   final Uuid _uuid = const Uuid();
@@ -43,15 +43,14 @@ class AuthService {
   Future<AuthResult> login(String email, String password) async {
     try {
       final headers = await _getHeaders(includeAuth: false);
-      
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/api/user/login'),
-        headers: headers,
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(_timeoutDuration);
+
+      final response = await _client
+          .post(
+            Uri.parse('$_baseUrl/api/user/login'),
+            headers: headers,
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(_timeoutDuration);
 
       if (kDebugMode) {
         debugPrint('Login response status: ${response.statusCode}');
@@ -62,7 +61,9 @@ class AuthService {
 
       if (response.statusCode == 200) {
         if (kDebugMode) {
-          debugPrint('🔑 Storing tokens - accessToken: ${data['accessToken'] != null}, refreshToken: ${data['refreshToken'] != null}');
+          debugPrint(
+            '🔑 Storing tokens - accessToken: ${data['accessToken'] != null}, refreshToken: ${data['refreshToken'] != null}',
+          );
         }
         await _storeTokens(data);
         if (kDebugMode) {
@@ -87,12 +88,14 @@ class AuthService {
   Future<AuthResult> register(Map<String, dynamic> userData) async {
     try {
       final headers = await _getHeaders(includeAuth: false);
-      
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/api/user/register'),
-        headers: headers,
-        body: jsonEncode(userData),
-      ).timeout(_timeoutDuration);
+
+      final response = await _client
+          .post(
+            Uri.parse('$_baseUrl/api/user/register'),
+            headers: headers,
+            body: jsonEncode(userData),
+          )
+          .timeout(_timeoutDuration);
 
       if (kDebugMode) {
         debugPrint('Register response status: ${response.statusCode}');
@@ -147,14 +150,14 @@ class AuthService {
       }
 
       final headers = await _getHeaders(includeAuth: false);
-      
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/api/auth/refresh'),
-        headers: headers,
-        body: jsonEncode({
-          'refreshToken': refreshToken,
-        }),
-      ).timeout(_timeoutDuration);
+
+      final response = await _client
+          .post(
+            Uri.parse('$_baseUrl/api/auth/refresh'),
+            headers: headers,
+            body: jsonEncode({'refreshToken': refreshToken}),
+          )
+          .timeout(_timeoutDuration);
 
       if (kDebugMode) {
         debugPrint('Refresh token response status: ${response.statusCode}');
@@ -182,13 +185,17 @@ class AuthService {
   // Store tokens securely
   Future<void> _storeTokens(Map<String, dynamic> data) async {
     if (kDebugMode) {
-      debugPrint('💾 Storing tokens: accessToken=${data['accessToken']?.substring(0, 20)}..., refreshToken=${data['refreshToken']?.substring(0, 20)}...');
+      debugPrint(
+        '💾 Storing tokens: accessToken=${data['accessToken']?.substring(0, 20)}..., refreshToken=${data['refreshToken']?.substring(0, 20)}...',
+      );
     }
-    
+
     if (data['accessToken'] == null || data['refreshToken'] == null) {
-      throw Exception('Missing tokens in response: accessToken=${data['accessToken'] != null}, refreshToken=${data['refreshToken'] != null}');
+      throw Exception(
+        'Missing tokens in response: accessToken=${data['accessToken'] != null}, refreshToken=${data['refreshToken'] != null}',
+      );
     }
-    
+
     await Future.wait([
       _storage.storeAccessToken(
         data['accessToken'],
@@ -196,12 +203,13 @@ class AuthService {
       ),
       _storage.storeRefreshToken(
         data['refreshToken'],
-        data['refreshTokenExpiresIn'] ?? 30 * 24 * 60 * 60 * 1000, // 30 days default
+        data['refreshTokenExpiresIn'] ??
+            30 * 24 * 60 * 60 * 1000, // 30 days default
       ),
       if (data['user'] != null)
         _storage.storeUserData(jsonEncode(data['user'])),
     ]);
-    
+
     if (kDebugMode) {
       debugPrint('✅ All tokens and user data stored successfully');
     }
@@ -211,18 +219,18 @@ class AuthService {
   Future<void> logout() async {
     try {
       final refreshToken = await _storage.getRefreshToken();
-      
+
       if (refreshToken != null) {
         // Notify server about logout
         final headers = await _getHeaders(includeAuth: false);
-        
-        await _client.post(
-          Uri.parse('$_baseUrl/api/auth/logout'),
-          headers: headers,
-          body: jsonEncode({
-            'refreshToken': refreshToken,
-          }),
-        ).timeout(_timeoutDuration);
+
+        await _client
+            .post(
+              Uri.parse('$_baseUrl/api/auth/logout'),
+              headers: headers,
+              body: jsonEncode({'refreshToken': refreshToken}),
+            )
+            .timeout(_timeoutDuration);
       }
     } catch (e) {
       if (kDebugMode) {
@@ -238,11 +246,10 @@ class AuthService {
   Future<AuthResult> logoutFromAllDevices() async {
     try {
       final headers = await _getHeaders();
-      
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/api/auth/logout-all'),
-        headers: headers,
-      ).timeout(_timeoutDuration);
+
+      final response = await _client
+          .post(Uri.parse('$_baseUrl/api/auth/logout-all'), headers: headers)
+          .timeout(_timeoutDuration);
 
       await _storage.clearTokens();
 
@@ -295,24 +302,32 @@ class AuthService {
     }
 
     final uri = Uri.parse('$_baseUrl$endpoint');
-    
+
     switch (method.toUpperCase()) {
       case 'GET':
-        return await _client.get(uri, headers: headers).timeout(_timeoutDuration);
+        return await _client
+            .get(uri, headers: headers)
+            .timeout(_timeoutDuration);
       case 'POST':
-        return await _client.post(
-          uri,
-          headers: headers,
-          body: body != null ? jsonEncode(body) : null,
-        ).timeout(_timeoutDuration);
+        return await _client
+            .post(
+              uri,
+              headers: headers,
+              body: body != null ? jsonEncode(body) : null,
+            )
+            .timeout(_timeoutDuration);
       case 'PUT':
-        return await _client.put(
-          uri,
-          headers: headers,
-          body: body != null ? jsonEncode(body) : null,
-        ).timeout(_timeoutDuration);
+        return await _client
+            .put(
+              uri,
+              headers: headers,
+              body: body != null ? jsonEncode(body) : null,
+            )
+            .timeout(_timeoutDuration);
       case 'DELETE':
-        return await _client.delete(uri, headers: headers).timeout(_timeoutDuration);
+        return await _client
+            .delete(uri, headers: headers)
+            .timeout(_timeoutDuration);
       default:
         throw ArgumentError('Unsupported HTTP method: $method');
     }

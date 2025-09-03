@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fit_talk/services/auth_service.dart';
 import '../../themes/app_theme.dart';
 // import '../../providers/subscription_provider.dart'; // Commented out for testing
 import '../../models/chat_message.dart';
@@ -48,8 +48,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initializeChat() async {
-    final prefs = await SharedPreferences.getInstance();
-    _currentUserId = prefs.getString('userId');
+    final auth = AuthService();
+    final user = await auth.getCurrentUser();
+    _currentUserId = (user?['_id'] ?? user?['id'])?.toString();
 
     if (mounted) setState(() {});
   }

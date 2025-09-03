@@ -5,7 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fit_talk/services/auth_service.dart';
 import '../../themes/app_theme.dart';
 import '../../providers/call_provider.dart';
 import '../../providers/subscription_provider.dart';
@@ -482,8 +482,9 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
 
   Future<void> _initiateCall(BuildContext context, CallType callType) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentUserId = prefs.getString('userId');
+      final auth = AuthService();
+      final user = await auth.getCurrentUser();
+      final currentUserId = (user?['_id'] ?? user?['id'])?.toString();
       
       if (currentUserId == null) {
         _showErrorSnackBar(context, 'Please log in to make calls');
@@ -518,8 +519,9 @@ class _TrainerProfileScreenState extends State<TrainerProfileScreen> {
 
   Future<void> _openChat(BuildContext context) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentUserId = prefs.getString('userId');
+      final auth = AuthService();
+      final user = await auth.getCurrentUser();
+      final currentUserId = (user?['_id'] ?? user?['id'])?.toString();
       
       if (currentUserId == null) {
         _showErrorSnackBar(context, 'Please log in to chat');

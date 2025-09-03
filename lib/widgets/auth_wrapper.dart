@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/call_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/navigator/bottom_navigator_screen.dart';
 import '../screens/splash/splash_screen.dart';
@@ -27,6 +28,16 @@ class AuthWrapper extends StatelessWidget {
           case AuthState.authenticated:
             if (kDebugMode) {
               debugPrint('🏠 AuthWrapper navigating to BottomNavigatorScreen');
+            }
+            // Initialize incoming call listener once authenticated (idempotent)
+            final userId = authProvider.user?['_id']?.toString();
+            if (userId != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                try {
+                  final callProv = context.read<CallProvider>();
+                  callProv.listenForIncomingCalls(userId);
+                } catch (_) {}
+              });
             }
             return const BottomNavigatorScreen();
           case AuthState.unauthenticated:
